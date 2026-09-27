@@ -643,6 +643,8 @@ fn start_pipeline(
             };
             // Display virtual (Extended) dibuat di thread ini agar objek ObjC
             // hidup selama pipeline dan dilepas saat thread berakhir.
+            // (Hanya macOS: tipe `VirtualDisplay` tidak ada di platform lain.)
+            #[cfg(target_os = "macos")]
             let mut virtual_display: Option<crate::vdisplay::VirtualDisplay> = None;
             let display_id: String = match &target {
                 CaptureTarget::Display(id) => id.clone(),
@@ -678,7 +680,9 @@ fn start_pipeline(
                 }
             };
             rt.block_on(async move {
-                let _keep_virtual = &virtual_display; // hidup sampai thread selesai
+                // Hidupkan display virtual sampai pipeline selesai.
+                #[cfg(target_os = "macos")]
+                let _keep_virtual = &virtual_display;
                 let capturer = match crate::capture::capturer_for_display(&display_id) {
                     Ok(c) => c,
                     Err(e) => {

@@ -63,9 +63,19 @@ jobs:
         with:
           distribution: temurin
           java-version: "17"
-      - uses: android-actions/setup-android@v3
+      # Runner ubuntu sudah menyediakan Android SDK + sdkmanager; cukup terima
+      # lisensi lalu biarkan Gradle mengunduh platform 34 yang dibutuhkan.
+      # (Sebelumnya memakai android-actions/setup-android@v3 yang gagal install
+      # paket 'tools' legacy.)
       - name: Accept Android SDK licenses
-        run: yes | sdkmanager --licenses || true
+        run: |
+          SDKMANAGER="$(command -v sdkmanager || true)"
+          if [ -z "$SDKMANAGER" ]; then
+            SDKMANAGER="$(find "${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}" \
+              -path '*/cmdline-tools/*/bin/sdkmanager' 2>/dev/null | head -1)"
+          fi
+          echo "sdkmanager: $SDKMANAGER"
+          yes | "$SDKMANAGER" --licenses > /dev/null 2>&1 || true
       - name: Gradle test/lint/assemble
         working-directory: receiver-app
         run: ./gradlew --no-daemon testDebugUnitTest lint assembleDebug
