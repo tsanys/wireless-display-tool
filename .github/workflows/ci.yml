@@ -1,0 +1,71 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - "docs/**"
+      - "**/*.md"
+      - ".gitignore"
+  pull_request:
+    paths-ignore:
+      - "docs/**"
+      - "**/*.md"
+      - ".gitignore"
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # macOS: build + test penuh (termasuk sender-app/Tauri). Runner macOS
+  # berbiaya 10x di repo private -> hanya PR/manual, bukan tiap push ke main.
+  macos:
+    if: github.event_name != 'push'
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: sender-app/package-lock.json
+      # tauri::generate_context!() memerlukan dist frontend ada saat compile.
+      - name: Build frontend
+        working-directory: sender-app
+        run: npm ci && npm run build
+      - name: Format check
+        run: cargo fmt --all -- --check
+      - name: Test workspace
+        run: cargo test --workspace
+
+  # Windows: validasi kode core spesifik-Windows (kompilasi + unit test).
+  # TIDAK membangun sender-app (butuh dist + WebView2); core memuat seluruh
+  # kode platform-Windows (capture/encode/audio/vdisplay).
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Test core
+        run: cargo test -p wdt-core
+
+  # Android receiver: unit test + lint + assemble (tanpa device).
+  android:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: android-actions/setup-android@v3
+      - name: Accept Android SDK licenses
+        run: yes | sdkmanager --licenses || true
+      - name: Gradle test/lint/assemble
+        working-directory: receiver-app
+        run: ./gradlew --no-daemon testDebugUnitTest lint assembleDebug
