@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="ink">#0B1320</color>
+    <color name="slate">#132238</color>
+    <color name="mist">#EAF2F8</color>
+    <color name="signal_blue">#46A7FF</color>
+    <color name="link_cyan">#52D3C6</color>
+    <color name="amber">#F2B84B</color>
+</resources>

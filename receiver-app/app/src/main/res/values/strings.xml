@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="manual_input_hint">192.168.1.5:8420:123456</string>
+    <string name="app_title">WDT Receiver</string>
+    <string name="manual_label">ALAMAT LENGKAP DARI SENDER</string>
+    <string name="btn_connect">Hubungkan sekarang</string>
+    <string name="btn_retry">Cari ulang laptop</string>
+    <string name="discovery_searching">Mencari laptop di jaringan…</string>
+    <string name="discovery_empty">Belum ada laptop ditemukan. Pastikan Sender terbuka.</string>
+    <string name="discovery_found">Pilih laptop yang ingin ditampilkan</string>
+    <string name="tier_fmt">Kemampuan TV · %1$s</string>
+    <string name="sender_fmt">Tersambung ke %1$s</string>
+    <string name="sender_none">Belum ada laptop tersambung</string>
+    <string name="status_fmt">%1$s</string>
+    <string name="stats_fmt">%1$.1f fps · %4$.0f kbps · latensi %6$.1f ms · paket hilang %3$d</string>
+</resources>

@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <!-- WebSocket signaling + WebRTC media (LAN). -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <!-- MulticastLock agar mDNS (NSD) andal di banyak device TV. -->
+    <uses-permission android:name="android.permission.CHANGE_WIFI_MULTICAST_STATE" />
+
+    <!-- Pola standar aplikasi TV (dituntut lint MissingLeanbackSupport):
+         filtering device tetap lewat LEANBACK_LAUNCHER + banner. -->
+    <uses-feature
+        android:name="android.software.leanback"
+        android:required="false" />
+    <uses-feature
+        android:name="android.hardware.touchscreen"
+        android:required="false" />
+    <!-- Jangan batasi ke TV ber-WiFi: PLAN mendukung Ethernet↔WiFi, jadi
+         TV Ethernet-only harus tetap bisa meng-install (lint LeanbackUsesWifi). -->
+    <uses-feature
+        android:name="android.hardware.wifi"
+        android:required="false" />
+
+    <!-- usesCleartextTraffic: signaling memakai ws:// (bukan wss://) sesuai
+         docs/SIGNALING_PROTOCOL.md; sejak Android 9 cleartext diblokir default.
+         Tradeoff MVP LAN-only: trafik signaling tidak terenkripsi, sedangkan
+         media WebRTC tetap terenkripsi (DTLS/SRTP). Bila kelak mendukung
+         jaringan tidak tepercaya, ganti ke wss:// + sertifikat.
+         tools:targetApi="m" — atribut hanya berlaku API 23+; di API 21-22
+         cleartext memang tidak diblokir. -->
+    <application
+        android:allowBackup="false"
+        android:banner="@drawable/tv_banner"
+        android:label="WDT Receiver"
+        android:supportsRtl="false"
+        android:usesCleartextTraffic="true"
+        tools:targetApi="m"
+        android:theme="@android:style/Theme.Material.NoActionBar.Fullscreen">
+
+        <activity
+            android:name=".MainActivity"
+            android:configChanges="orientation|screenSize|keyboardHidden"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+
+                <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
+            </intent-filter>
+        </activity>
+    </application>
+
+</manifest>

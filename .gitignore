@@ -1,0 +1,57 @@
+# Rust
+/target/
+**/target/
+*.rs.bk
+# NOTE: Cargo.lock sengaja TIDAK di-ignore — workspace berisi binary crate
+# (sender-app/src-tauri) sehingga lockfile di-commit untuk build reproduksibel.
+
+# Node / frontend
+node_modules/
+dist/
+*.local
+
+# Tauri
+sender-app/src-tauri/target/
+sender-app/src-tauri/WixTools/
+
+# Android / Gradle
+receiver-app/.gradle/
+receiver-app/.kotlin/
+receiver-app/build/
+receiver-app/app/build/
+receiver-app/local.properties
+*.apk
+*.aab
+*.ap_
+*.dex
+*.class
+bin/
+gen/
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Windows
+Thumbs.db
+Desktop.ini
+
+# Editors
+.vscode/*
+!.vscode/extensions.json
+.idea/
+*.swp
+*.swo
+*~
+
+# Env / secrets
+.env
+.env.*
+!.env.example
+
+# Artefak uji example (PNG/H264/MP4 hasil run example)
+core/examples/output/
+
+# State tooling lokal (worktrees agen) — jangan di-commit
+.kilo/
