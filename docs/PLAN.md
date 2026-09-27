@@ -191,7 +191,7 @@ wireless-display-tool/
 - [x] Init monorepo dengan struktur di atas.
 - [x] Setup `Cargo.toml` workspace untuk `core/` dan `sender-app/src-tauri/`.
 - [x] Setup Android project kosong untuk `receiver-app/` dengan target Android TV (API 30 min).
-- [ ] Setup CI dasar (build check untuk 3 target) — **skip**: opsional, dan repo belum punya remote/commit sehingga workflow tak dapat dijalankan.
+- [x] Setup CI dasar (build check 3 target) — `.github/workflows/ci.yml`: Windows (`cargo test -p wdt-core`) + Android (gradle test/lint/assemble) tiap push; macOS (fmt + `cargo test --workspace` + npm build) untuk PR/manual. Ketiganya **hijau** di CI (run dispatch nyata).
 
 ### T1 — Rust Core: Screen Capture PoC
 - [x] Implement capture 1 frame dari display utama di Windows via `windows-rs` (`Windows.Graphics.Capture`), simpan sebagai file gambar untuk verifikasi.
