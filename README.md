@@ -593,6 +593,22 @@ Bukti logcat penting: `audio track ter-attach: wdt-audio enabled=true`,
 | Packet loss audio (local) | — | 0 |
 | RSS sender (release) | ~95 MB | ~95 MB |
 
+- **Drift audio**: nol di sisi sender — `sent_ms == packets × 20 ms` eksak
+  (mis. 1246 paket = 24920 ms). RTP timestamp dihitung dari akumulasi durasi.
+- **Lip-sync glass-to-glass**: belum diukur (butuh kamera sebagai ground truth
+  panel). Tidak diklaim ≤150 ms. Sisi sender tidak drift; penyelarasan A/V
+  runtime ditangani libwebrtc (RTP timestamp + RTCP SR).
+
+### Status validasi
+
+- **macOS**: capture + encode + E2E ke TV **tervalidasi runtime**.
+- **Windows**: WASAPI loopback terimplementasi penuh; **kompilasi diverifikasi**
+  (`cargo check --target x86_64-pc-windows-msvc`) tetapi **belum divalidasi
+  runtime** (tidak ada host Windows) — perlu build + uji native sebelum dicentang.
+- **Perubahan device audio saat sesi aktif** & **sleep/wake**: recovery
+  diimplementasikan (rebuild capturer + backoff) tetapi belum diuji dengan
+  perangkat berubah saat sesi berjalan.
+
 ### Perbaikan memori encoder VideoToolbox (ditemukan saat uji R4)
 
 Soak pipeline (tanpa jaringan) menemukan churn VM/swap: **RSS melonjak beberapa
@@ -696,21 +712,38 @@ panjang di-ellipsis.
 - **Usability test** 4/5 user first-connect ≤60 dtk (butuh pengguna nyata).
 - **Lip-sync** glass-to-glass (butuh kamera; tercatat di R4).
 
+## Development — Kualitas Video & Latency (R7)
 
+Kontrol user-facing untuk resolusi, frame rate, dan ketajaman; plus mode latency
+rendah eksperimental di receiver.
 
-- **Drift audio**: nol di sisi sender — `sent_ms == packets × 20 ms` eksak
-  (mis. 1246 paket = 24920 ms). RTP timestamp dihitung dari akumulasi durasi.
-- **Lip-sync glass-to-glass**: belum diukur (butuh kamera sebagai ground truth
-  panel). Tidak diklaim ≤150 ms. Sisi sender tidak drift; penyelarasan A/V
-  runtime ditangani libwebrtc (RTP timestamp + RTCP SR).
+### Opsi video (sender UI)
 
-### Status validasi
+| Opsi | Pilihan | Default |
+|---|---|---|
+| Resolusi | 1080p, 720p | 1080p |
+| Frame rate | 30, 60 fps | 30 fps |
+| Kualitas | Seimbang (0.9 / cap 10 Mbps), Tajam-teks (0.95 / cap 18 Mbps) | Seimbang |
 
-- **macOS**: capture + encode + E2E ke TV **tervalidasi runtime**.
-- **Windows**: WASAPI loopback terimplementasi penuh; **kompilasi diverifikasi**
-  (`cargo check --target x86_64-pc-windows-msvc`) tetapi **belum divalidasi
-  runtime** (tidak ada host Windows) — perlu build + uji native sebelum dicentang.
-- **Perubahan device audio saat sesi aktif** & **sleep/wake**: recovery
-  diimplementasikan (rebuild capturer + backoff) tetapi belum diuji dengan
-  perangkat berubah saat sesi berjalan.
+Dipilih di langkah **Tampilan**, dipersist per-TV, tampil di ringkasan
+(`1080p · 30 fps · Seimbang`). Validasi backend: resolusi/fps dibatasi
+`ENCODER_MAX_*` (1920×1080, 60 fps — sesuai level H.264 4.2 di SDP).
 
+Hook uji (CLI) tetap ada: `WDT_VIDEO=1080p|720p`, `WDT_FPS_UI=30|60`,
+`WDT_QUALITY=balanced|sharp`; override target mentah `WDT_TARGET`/`WDT_FPS`.
+
+### Mode latency rendah (receiver, eksperimental)
+
+Checkbox di layar setup → field trial libwebrtc
+`WebRTC-ForcePlayoutDelay/10/Enabled/` (target jitter buffer video 10 ms).
+Trade-off: latency turun, glitch/underrun lebih mungkin pada jaringan jitter
+tinggi. **Default OFF**, disimpan di SharedPreferences, dan hanya berlaku pada
+factory pertama → perlu **tutup & buka ulang aplikasi**.
+
+Catatan: ~250 ms terbesar E2E ada di jalur render→panel TV (di luar kendali
+kita); tuas ini hanya memangkas bagian upstream (jitter buffer).
+
+### Belum divalidasi (jujur)
+
+- A/B latency aktual (probe in-app) dan uji 720p/1080p/60fps di MiTV **ditunda**
+  atas permintaan pengguna (uji device manual menyusul).

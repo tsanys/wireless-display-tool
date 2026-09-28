@@ -371,3 +371,33 @@ Kerjakan `R0 → R1 → R2 → R3 → R4 → R5 → R6`. Redesign tidak perlu me
 Extended selesai: R1/R2 menggunakan capability gate sehingga UI baru dapat
 dirilis dengan Mirror + video-only, lalu fitur audio dan Extended muncul saat
 backend masing-masing benar-benar siap.
+
+## 10. R7 — Kualitas video, latency, lokalisasi & rilis (di luar blueprint awal)
+
+Milestone lanjutan setelah R6 (permintaan produk).
+
+### R7a — Kontrol resolusi/fps/kualitas + latency
+
+- [x] Core: `VideoSettings` (1080p/720p · 30/60 fps · Seimbang/Tajam) menggantikan
+  hardcode; batas encoder untuk gating (`ENCODER_MAX_*`).
+- [x] Sender: `ShareSettings.video` (serde `default` → backward-compatible),
+  validasi, kontrol UI + persist per-TV + ringkasan; kontrak wire `fps30/fps60`.
+- [x] Receiver: toggle **mode latency rendah** (field trial
+  `WebRTC-ForcePlayoutDelay/10/Enabled/`, default OFF, perlu restart).
+- [x] Uji lokal: `cargo fmt` + 72 test Rust, `npm run build`, gradle test/lint/assemble.
+- [ ] **Uji device**: A/B latency (probe in-app) + 720p/1080p/60 fps di MiTV —
+  **ditunda** (uji manual menyusul atas permintaan user).
+
+### R7b — Lokalisasi EN/ID
+
+- [ ] Sender: ekstrak string → `i18n/{id,en}.ts` + `t()`, deteksi bahasa sistem,
+  pemilih bahasa, persist.
+- [ ] Receiver: sisa string → `strings.xml` + `values-en/`, resolver dinamis.
+- [ ] Guard CI (grep literal Indonesia) + screenshot dua locale.
+
+### R7c — Rilis (GitHub Releases)
+
+- [ ] `release.yml` (tag `v*` + `workflow_dispatch`): sender `.dmg` (macOS) +
+  `.exe` (Windows NSIS) + receiver `.apk`.
+- [ ] `RELEASE.md` (signing macOS/keystore Android, secrets, catatan Gatekeeper/
+  SmartScreen). Artefak awal **unsigned/adhoc**.
