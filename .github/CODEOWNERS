@@ -1,0 +1,6 @@
+# Default owner for everything in this repository.
+# The `protect-main` ruleset requires a review from a code owner, so every
+# external PR needs maintainer (@tsanys) approval before it can merge.
+# Only the maintainer may push or merge with bypass.
+
+* @tsanys

@@ -1,0 +1,31 @@
+# Dependabot: keep dependencies and pinned GitHub Actions fresh.
+# PRs opened by Dependabot go through the same gates as any contributor PR
+# (required checks + code-owner review), so they are safe to auto-merge only
+# if the maintainer enables it per-PR — nothing merges by itself.
+version: 2
+updates:
+  # Rust workspace (root Cargo.toml + Cargo.lock).
+  - package-ecosystem: "cargo"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+  # Sender app (Tauri frontend).
+  - package-ecosystem: "npm"
+    directory: "/sender-app"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+  # Receiver app (Android TV).
+  - package-ecosystem: "gradle"
+    directory: "/receiver-app"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+  # Pinned third-party Actions in .github/workflows (see the `# v4` / `# stable`
+  # comments next to each commit SHA).
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5

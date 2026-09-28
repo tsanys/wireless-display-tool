@@ -210,6 +210,8 @@ docs/          Architecture, protocols, UX plan, development journal
 Contributions are welcome — see [CONTRIBUTING.md](CONTRIBUTING.md). In short:
 fork, create a topic branch, keep commits in Conventional Commit style
 (`feat:`, `fix:`, `docs:`, `ci:`), run the checks above, and open a PR.
+`main` is protected: every PR needs green CI and maintainer review, and only
+the maintainer may push to `main` directly.
 
 Adding a UI string? Add it to the sender dictionary
 (`sender-app/src/i18n.id-en.json`) and/or the receiver resources

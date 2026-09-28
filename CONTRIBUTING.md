@@ -70,22 +70,42 @@ cd receiver-app
 python3 scripts/check_i18n.py       # ID/EN string parity guard
 ```
 
-> CI note: the macOS workspace job runs on pull requests and manual dispatch
-> only (private-repo CI minutes); the Windows and Android jobs run on every push.
+> CI note: all three jobs (`macos`, `windows`, `android`) run on every pull
+> request, including docs-only ones. The repository is public, so Actions
+> minutes are free. Pushes to `main` skip docs-only runs via `paths-ignore`.
 
 ## Branching & branch protection
 
+`main` is protected by a **repository ruleset** (`protect-main`). The rules,
+in short:
+
 - `main` is the only long-lived branch. Do all work on short-lived topic
   branches (`feat/…`, `fix/…`, `docs/…`) and land it via **pull request**.
-- Direct pushes to `main` are reserved for the maintainer (`tsanys`); everyone
-  else merges through a PR. This is currently a convention — the repository is
-  private on a free plan, where GitHub does not offer branch protection — and
-  will be enforced by a repo ruleset (required PR, no force-push, no deletion,
-  maintainer-only bypass) once the repository goes public.
-- Never force-push to or delete `main`.
-- Status checks are intentionally **not** required for merging: docs-only changes
-  skip CI via `paths-ignore`, and a required check would lock those PRs. Keep
-  code PRs green voluntarily instead (see the checks above).
+  There is no other way in — direct pushes, force-pushes, and deletion of
+  `main` are all blocked.
+- Every PR needs **one approving review from a code owner** (see
+  [`.github/CODEOWNERS`](.github/CODEOWNERS)), i.e. the maintainer.
+- Every PR must be **green**: `macos`, `windows`, and `android` are required
+  status checks and block merging until they pass.
+- History is **linear**: merge via **squash** only (the only enabled merge
+  method), and resolve all review conversations before merging.
+- **Maintainer-only bypass.** The maintainer (`tsanys`) is the sole bypass
+  actor and may push or merge directly to `main` when needed. If you are not
+  the maintainer, do not ask for bypass — open a PR like everyone else.
+- Release tags (`v*`) are restricted by a second ruleset (`protect-tags`):
+  only the maintainer can create them.
+
+### Contribution flow (external contributors)
+
+1. **Fork** the repository to your account.
+2. Create a topic branch from `main` (`feat/…`, `fix/…`, `docs/…`).
+3. Run the checks above (matching what you changed) **before** pushing.
+4. Open a PR against `main` using the PR template; describe what changed,
+   why, and how you verified it.
+5. Wait for CI (three jobs) and maintainer review; address feedback by
+   pushing new commits — never rewrite history on an open PR.
+6. The maintainer squash-merges; your branch is deleted automatically after
+   merge. Delete your fork's branch when done.
 
 ## Commit and PR conventions
 

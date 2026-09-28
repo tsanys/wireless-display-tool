@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Repository hardening for open source: `main` protected by a ruleset
+  (pull request + code-owner review + required CI, maintainer-only bypass),
+  `v*` tag creation restricted to the maintainer, third-party GitHub Actions
+  pinned to commit SHAs, and Dependabot for cargo/npm/gradle/Actions.
+- Security defaults: secret scanning with push protection, Dependabot
+  alerts/security updates, and private vulnerability reporting.
+
 ## [0.1.0] - 2026-09-28
 
 First stable release of Wireless Display Tool: mirror a macOS/Windows screen to
