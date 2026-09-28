@@ -1,0 +1,87 @@
+name: Bug report
+description: Report a reproducible problem with the sender or receiver app.
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to file a bug! Please fill in as much detail
+        as you can. Do **not** paste pairing tokens or private IP addresses.
+  - type: dropdown
+    id: component
+    attributes:
+      label: Component
+      description: Which part of the project is affected?
+      options:
+        - Sender app (macOS)
+        - Sender app (Windows)
+        - Receiver app (Android TV)
+        - Rust core (capture/encode/audio/signaling)
+        - Other / not sure
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version / commit
+      description: Release tag (e.g. v0.1.0-rc1) or commit SHA.
+      placeholder: v0.1.0-rc1
+    validations:
+      required: true
+  - type: input
+    id: laptop
+    attributes:
+      label: Laptop OS
+      description: OS and version (e.g. macOS 14.5, Windows 11 23H2).
+    validations:
+      required: true
+  - type: input
+    id: tv
+    attributes:
+      label: TV model and Android version
+      description: e.g. Xiaomi MiTV-MOOR2, Android TV 11.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: Be specific and minimal.
+      placeholder: |
+        1. Open the sender app...
+        2. On the TV, ...
+        3. ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs / diagnostics
+      description: |
+        Sender console output and/or `adb logcat` excerpts. The in-app
+        diagnostics export (technical state only) can help. Remove tokens and IPs.
+      render: shell
+    validations:
+      required: false
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checklist
+      options:
+        - label: The laptop and TV are on the same local network.
+          required: true
+        - label: I searched existing issues and this is not a duplicate.
+          required: true

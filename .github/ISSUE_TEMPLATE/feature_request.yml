@@ -1,0 +1,47 @@
+name: Feature request
+description: Suggest an idea or improvement for Wireless Display Tool.
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the suggestion! Please note the project's MVP constraints
+        (LAN-only, no cloud/relay, hardware codecs, Android TV target) described
+        in the README and docs/PLAN.md.
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem / motivation
+      description: What problem are you trying to solve? Why is it valuable?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: Describe what you would like to happen.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Any workarounds or other approaches you have thought about.
+    validations:
+      required: false
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Video quality / performance
+        - Audio
+        - Discovery / pairing / networking
+        - UX / UI
+        - Localization
+        - Packaging / release
+        - Documentation
+        - Other
+    validations:
+      required: true
