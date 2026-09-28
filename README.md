@@ -777,3 +777,20 @@ pilihan dipersist.
 
 Catatan: pemilih bahasa di sisi receiver mengikuti mekanisme locale Android
 (pengaturan sistem/aplikasi); belum ada tombol in-app terpisah.
+
+## Rilis (R9)
+
+Artefak rilis dibangun oleh `.github/workflows/release.yml` (pemicu: tag `v*`
+atau `workflow_dispatch` dengan input `tag`). Satu GitHub Release berisi:
+
+| Artefak | Platform |
+|---|---|
+| `wdt-sender-<tag>-macos-universal.dmg` | macOS (arm64 + x86_64) |
+| `wdt-sender-<tag>-windows-x64-setup.exe` | Windows x64 (NSIS) |
+| `wdt-receiver-<tag>-android.apk` | Android TV (debug-sign, sideload) |
+
+Artefak awal **unsigned/adhoc** — lihat **`RELEASE.md`** untuk langkah rilis,
+konsekuensi Gatekeeper/SmartScreen, dan rencana signing.
+
+Verifikasi workflow: rilis **`v0.1.0-rc1`** (pre-release) berhasil membangun &
+mengunggah ketiga artefak.

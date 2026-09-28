@@ -407,7 +407,11 @@ Milestone lanjutan setelah R6 (permintaan produk).
 
 ### R7c — Rilis (GitHub Releases)
 
-- [ ] `release.yml` (tag `v*` + `workflow_dispatch`): sender `.dmg` (macOS) +
-  `.exe` (Windows NSIS) + receiver `.apk`.
-- [ ] `RELEASE.md` (signing macOS/keystore Android, secrets, catatan Gatekeeper/
-  SmartScreen). Artefak awal **unsigned/adhoc**.
+- [x] `.github/workflows/release.yml` (tag `v*` + `workflow_dispatch`):
+  sender `.dmg` (macOS universal arm64+x86_64) + `.exe` (Windows NSIS) +
+  receiver `.apk` (debug-sign), lalu satu GitHub Release via `gh release`.
+- [x] `RELEASE.md` (langkah rilis, konsekuensi Gatekeeper/SmartScreen,
+  rencana signing macOS/keystore Android). Artefak awal **unsigned/adhoc**.
+- [x] **Uji dispatch**: rilis `v0.1.0-rc1` (pre-release) berhasil membangun &
+  mengunggah ketiga artefak.
+- [ ] Tag rilis stabil `v0.1.0` (menunggu uji device R7a/R7b).
