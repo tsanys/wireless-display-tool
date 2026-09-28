@@ -747,3 +747,33 @@ kita); tuas ini hanya memangkas bagian upstream (jitter buffer).
 
 - A/B latency aktual (probe in-app) dan uji 720p/1080p/60fps di MiTV **ditunda**
   atas permintaan pengguna (uji device manual menyusul).
+
+## Development — Lokalisasi EN/ID (R8)
+
+Antarmuka sender & receiver mendukung **Indonesia (default)** dan **Inggris**.
+Bahasa awal mengikuti bahasa sistem (fallback ID) dan dapat diganti manual;
+pilihan dipersist.
+
+### Sender (Tauri/Web)
+
+- Kamus `sender-app/src/i18n.id-en.json` (ID→EN) + `sender-app/src/i18n.ts`
+  (`t()` string dinamis, `tf()` template, `initLocale`/`setLocale`).
+- Teks statis di `index.html` ditukar otomatis via penelusuran text-node;
+  teks dinamis (status, ringkasan kualitas, daftar TV) memakai `t()`. Transisi
+  locale bersifat idempoten (dipilih dari bahasa target).
+- Pemilih bahasa ada di dialog **Bantuan**; pilihan disimpan di `localStorage`
+  (`wdt:locale`).
+- Guard kamus: `npm run i18n:check` (di job CI macOS) — memastikan tidak ada EN
+  kosong/sama dengan ID dan placeholder `{...}` konsisten.
+
+### Receiver (Android)
+
+- `values/strings.xml` (ID) + `values-en/strings.xml` (EN), 70 string; seluruh
+  teks `MainActivity` dan layout memakai resource (`getString()`/`@string`).
+- Deteksi status "dijeda" memakai flag eksplisit (bukan substring teks) agar
+  aman lintas bahasa.
+- Guard paritas: `python3 receiver-app/scripts/check_i18n.py` (di job CI Android)
+  — memastikan setiap string punya padanan ID/EN dengan argumen format sama.
+
+Catatan: pemilih bahasa di sisi receiver mengikuti mekanisme locale Android
+(pengaturan sistem/aplikasi); belum ada tombol in-app terpisah.

@@ -390,10 +390,20 @@ Milestone lanjutan setelah R6 (permintaan produk).
 
 ### R7b — Lokalisasi EN/ID
 
-- [ ] Sender: ekstrak string → `i18n/{id,en}.ts` + `t()`, deteksi bahasa sistem,
-  pemilih bahasa, persist.
-- [ ] Receiver: sisa string → `strings.xml` + `values-en/`, resolver dinamis.
-- [ ] Guard CI (grep literal Indonesia) + screenshot dua locale.
+- [x] Sender: kamus `src/i18n.id-en.json` (113 entri) + `i18n.ts` (`t()`/`tf()`,
+  `initLocale`/`setLocale`), deteksi bahasa sistem (fallback ID), pemilih bahasa
+  di dialog Bantuan, persist `localStorage`. Swap text-node statis + re-render
+  dinamis; `setLocale` idempoten.
+- [x] Receiver: 70 string di `values/strings.xml` + `values-en/strings.xml`;
+  11 teks layout → `@string`; `MainActivity` memakai `getString()` (flag
+  `paused` menggantikan deteksi substring `dijeda`).
+- [x] Guard CI: `sender-app/scripts/check-i18n.mjs` (`npm run i18n:check`) +
+  `receiver-app/scripts/check_i18n.py` (paritas nama & argumen ID/EN),
+  dipanggil di job CI macOS & Android.
+- [x] Verifikasi lokal: sender ID⇄EN diuji runtime (mock mode, statis + dinamis);
+  receiver `gradlew testDebugUnitTest lint assembleDebug` hijau.
+- [ ] **Uji device**: screenshot dua locale di MiTV (cek bahasa sistem → ID/EN) —
+  menyusul bersama R7a.
 
 ### R7c — Rilis (GitHub Releases)
 
