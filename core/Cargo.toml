@@ -17,7 +17,7 @@ opus = "0.4"
 # Resampler PCM pure-Rust (tanpa C), untuk normalisasi jalur Windows
 # (mix format WASAPI bisa 44,1 kHz). macOS meminta 48 kHz langsung dari SCK.
 rubato = "5.0"
-rtc = "0.20"
+rtc = "0.21"
 serde = { version = "1.0.229", features = ["derive"] }
 serde_json = "1.0.151"
 tokio = { version = "1.53.1", features = ["full"] }
