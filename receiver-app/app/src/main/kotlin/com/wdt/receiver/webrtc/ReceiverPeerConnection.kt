@@ -78,6 +78,7 @@ class ReceiverPeerConnection(
     private val onStateChange: (PeerState) -> Unit,
     private val onError: (String) -> Unit,
     private val onFirstFrame: () -> Unit = {},
+    private val lowLatency: Boolean = false,
 ) {
     private val appContext = context.applicationContext
     private val main = Handler(Looper.getMainLooper())
@@ -115,12 +116,11 @@ class ReceiverPeerConnection(
     private var lastStatsAtMs: Long = 0
 
     init {
-        ensureFactoryInitialized(appContext)
+        ensureFactoryInitialized(appContext, lowLatency)
         factory = PeerConnectionFactory.builder()
             .setVideoDecoderFactory(DefaultVideoDecoderFactory(eglBase.eglBaseContext))
             .createPeerConnectionFactory()
     }
-
     private fun runOnMain(block: () -> Unit) {
         if (Looper.myLooper() == Looper.getMainLooper()) block() else main.post(block)
     }
@@ -563,7 +563,7 @@ class ReceiverPeerConnection(
         @Volatile
         private var factoryInitialized = false
 
-        private fun ensureFactoryInitialized(context: Context) {
+        private fun ensureFactoryInitialized(context: Context, lowLatency: Boolean) {
             if (factoryInitialized) return
             synchronized(ReceiverPeerConnection::class.java) {
                 if (factoryInitialized) return
@@ -572,6 +572,10 @@ class ReceiverPeerConnection(
                         .setEnableInternalTracer(false)
                         .createInitializationOptions(),
                 )
+                if (lowLatency) {
+                    PeerConnectionFactory.initializeFieldTrials(LOW_LATENCY_TRIAL)
+                    Log.i(TAG, "field trial aktif: $LOW_LATENCY_TRIAL")
+                }
                 if (WEBRTC_DEBUG_LOG) {
                     // HARUS setelah initialize(): native lib dimuat di sana,
                     // memanggil sebelumnya -> UnsatisfiedLinkError.
@@ -580,5 +584,16 @@ class ReceiverPeerConnection(
                 factoryInitialized = true
             }
         }
+
+        /** True bila factory global sudah dibuat pada proses ini. */
+        fun isFactoryInitialized(): Boolean = factoryInitialized
+
+        /**
+         * Field trial low-latency (R7). `WebRTC-ForcePlayoutDelay/10/Enabled/`
+         * menurunkan target jitter buffer video ke nilai tetap 10 ms. Trade-off:
+         * latency turun, tetapi glitch/underrun lebih mungkin pada jaringan
+         * jitter tinggi. Default OFF; diterapkan hanya pada factory pertama.
+         */
+        private const val LOW_LATENCY_TRIAL = "WebRTC-ForcePlayoutDelay/10/Enabled/"
     }
 }

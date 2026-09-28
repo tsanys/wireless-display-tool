@@ -13,4 +13,6 @@
     <string name="sender_none">Belum ada laptop tersambung</string>
     <string name="status_fmt">%1$s</string>
     <string name="stats_fmt">%1$.1f fps · %4$.0f kbps · latensi %6$.1f ms · paket hilang %3$d</string>
+    <string name="low_latency_label">Mode latency rendah (eksperimental)</string>
+    <string name="low_latency_restart">Tutup dan buka ulang aplikasi untuk menerapkan perubahan ini.</string>
 </resources>

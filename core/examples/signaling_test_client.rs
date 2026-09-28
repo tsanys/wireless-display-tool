@@ -159,6 +159,30 @@ fn capture_target() -> wdt_core::signaling::sender_session::CaptureTarget {
     CaptureTarget::Display("main".to_string())
 }
 
+/// Pengaturan video dari env: WDT_VIDEO=1080p|720p, WDT_FPS_UI=30|60,
+/// WDT_QUALITY=balanced|sharp (default 1080p30 balanced).
+fn sender_video_settings() -> wdt_core::signaling::sender_session::VideoSettings {
+    use wdt_core::signaling::sender_session::{QualityPreset, ResolutionPreset, VideoSettings};
+    let resolution = match std::env::var("WDT_VIDEO").ok().as_deref() {
+        Some("720p") => ResolutionPreset::P720,
+        _ => ResolutionPreset::P1080,
+    };
+    let fps = std::env::var("WDT_FPS_UI")
+        .ok()
+        .and_then(|v| v.trim().parse::<u32>().ok())
+        .filter(|f| *f == 30 || *f == 60)
+        .unwrap_or(30);
+    let quality = match std::env::var("WDT_QUALITY").ok().as_deref() {
+        Some("sharp") => QualityPreset::Sharp,
+        _ => QualityPreset::Balanced,
+    };
+    VideoSettings {
+        resolution,
+        fps,
+        quality,
+    }
+}
+
 /// Route audio dari env: WDT_AUDIO=tv|both|muted (default laptop).
 fn sender_audio_route() -> wdt_core::signaling::protocol::AudioRoute {
     use wdt_core::signaling::protocol::AudioRoute;
@@ -213,6 +237,7 @@ async fn run_sender_session(url: &str, mode: SenderMode) -> Result<(), Box<dyn s
         .send(SessionCmd::StartOffer {
             target: capture_target(),
             audio_route: sender_audio_route(),
+            video: sender_video_settings(),
         })
         .map_err(|_| "sesi mati".to_string())?;
 
@@ -292,6 +317,7 @@ async fn run_sender_session(url: &str, mode: SenderMode) -> Result<(), Box<dyn s
                 .send(SessionCmd::StartOffer {
                     target: capture_target(),
                     audio_route: sender_audio_route(),
+                    video: sender_video_settings(),
                 })
                 .ok();
             restart_phase = 2;

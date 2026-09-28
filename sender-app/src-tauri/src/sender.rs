@@ -104,11 +104,100 @@ pub enum DisplayMode {
     },
 }
 
-/// Preset quality user-facing. Auto memakai tuning produksi saat ini.
+/// Preset kualitas encoder user-facing (R7).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub enum QualityPreset {
-    Auto,
+    /// Seimbang (default; kualitas 0.9, cap 10 Mbps).
+    Balanced,
+    /// Tajam untuk teks (kualitas 0.95, cap 18 Mbps — butuh LAN stabil).
+    Sharp,
+}
+
+/// Resolusi stream user-facing (R7).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum ResolutionPreset {
+    /// 1080p (default).
+    P1080,
+    /// 720p (hemat CPU/jaringan).
+    P720,
+}
+
+/// Frame rate stream user-facing (R7).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum FrameRatePreset {
+    Fps30,
+    Fps60,
+}
+
+/// Pengaturan video user-facing (dipetakan ke `wdt_core` VideoSettings).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct VideoSettingsUi {
+    pub resolution: ResolutionPreset,
+    pub frame_rate: FrameRatePreset,
+    pub quality: QualityPreset,
+}
+
+impl Default for VideoSettingsUi {
+    fn default() -> Self {
+        Self {
+            resolution: ResolutionPreset::P1080,
+            frame_rate: FrameRatePreset::Fps30,
+            quality: QualityPreset::Balanced,
+        }
+    }
+}
+
+impl VideoSettingsUi {
+    /// Pemetaan ke tipe core.
+    pub fn to_core(self) -> wdt_core::signaling::sender_session::VideoSettings {
+        use wdt_core::signaling::sender_session::{
+            QualityPreset as CoreQuality, ResolutionPreset as CoreResolution, VideoSettings,
+        };
+        VideoSettings {
+            resolution: match self.resolution {
+                ResolutionPreset::P1080 => CoreResolution::P1080,
+                ResolutionPreset::P720 => CoreResolution::P720,
+            },
+            fps: match self.frame_rate {
+                FrameRatePreset::Fps30 => 30,
+                FrameRatePreset::Fps60 => 60,
+            },
+            quality: match self.quality {
+                QualityPreset::Balanced => CoreQuality::Balanced,
+                QualityPreset::Sharp => CoreQuality::Sharp,
+            },
+        }
+    }
+
+    /// Validasi terhadap batas encoder (gating capability).
+    pub fn validate(&self) -> Result<(), String> {
+        let (w, h) = match self.resolution {
+            ResolutionPreset::P1080 => (1920u32, 1080u32),
+            ResolutionPreset::P720 => (1280u32, 720u32),
+        };
+        if w > wdt_core::encode::ENCODER_MAX_WIDTH || h > wdt_core::encode::ENCODER_MAX_HEIGHT {
+            return Err(format!(
+                "Encoder mendukung maksimum {}×{}; resolusi {w}×{h} terlalu besar",
+                wdt_core::encode::ENCODER_MAX_WIDTH,
+                wdt_core::encode::ENCODER_MAX_HEIGHT
+            ));
+        }
+        let fps = match self.frame_rate {
+            FrameRatePreset::Fps30 => 30,
+            FrameRatePreset::Fps60 => 60,
+        };
+        if fps > wdt_core::encode::ENCODER_MAX_FPS {
+            return Err(format!(
+                "Encoder mendukung maksimum {} fps",
+                wdt_core::encode::ENCODER_MAX_FPS
+            ));
+        }
+        Ok(())
+    }
 }
 
 /// Konfigurasi immutable yang dipakai sepanjang satu sesi share.
@@ -118,7 +207,8 @@ pub struct ShareSettings {
     pub receiver_id: String,
     pub display_mode: DisplayMode,
     pub audio_route: AudioRoute,
-    pub quality: QualityPreset,
+    #[serde(default)]
+    pub video: VideoSettingsUi,
 }
 
 impl ShareSettings {
@@ -129,7 +219,7 @@ impl ShareSettings {
                 display_id: "main".to_string(),
             },
             audio_route: AudioRoute::Laptop,
-            quality: QualityPreset::Auto,
+            video: VideoSettingsUi::default(),
         }
     }
 }
@@ -669,6 +759,8 @@ fn validate_share_settings(
             }
         }
     }
+    // Validasi pengaturan video (gating encoder) — R7.
+    settings.video.validate()?;
     let receiver_audio = receiver_caps.map(|c| c.audio).unwrap_or(false);
     if !audio_route_allowed(settings.audio_route, system_capture, receiver_audio) {
         if !system_capture {
@@ -699,7 +791,7 @@ pub async fn start_sharing(app: AppHandle, settings: ShareSettings) -> Result<()
     // Sumber gambar: display fisik untuk Mirror, display virtual untuk Extended.
     let target = capture_target_for(&settings.display_mode);
     let state = app.state::<AppState>();
-    let (cmds, audio_route) = {
+    let (cmds, audio_route, settings_video) = {
         let mut inner = state.inner.lock().await;
         let receiver = inner
             .receiver
@@ -730,13 +822,15 @@ pub async fn start_sharing(app: AppHandle, settings: ShareSettings) -> Result<()
             .clone()
             .ok_or_else(|| "Sesi berbagi belum siap".to_string())?;
         let route = settings.audio_route;
+        let settings_video = settings.video;
         inner.active_settings = Some(settings);
-        (cmds, route)
+        (cmds, route, settings_video)
     };
     if cmds
         .send(SessionCmd::StartOffer {
             target,
             audio_route,
+            video: settings_video.to_core(),
         })
         .is_err()
     {
@@ -1251,13 +1345,34 @@ mod tests {
             "receiverId": "tv-keluarga",
             "displayMode": { "kind": "mirror", "displayId": "main" },
             "audioRoute": "laptop",
-            "quality": "auto"
+            "video": { "resolution": "p1080", "frameRate": "fps30", "quality": "balanced" }
         });
         let parsed: ShareSettings = serde_json::from_value(json).expect("contract JSON");
         assert_eq!(
             parsed,
             ShareSettings::mirror_defaults("tv-keluarga".to_string())
         );
+    }
+
+    /// Pemetaan UI → core VideoSettings konsisten.
+    #[test]
+    fn video_settings_ui_maps_to_core() {
+        let ui = VideoSettingsUi {
+            resolution: ResolutionPreset::P720,
+            frame_rate: FrameRatePreset::Fps60,
+            quality: QualityPreset::Sharp,
+        };
+        let core = ui.to_core();
+        assert_eq!(
+            core,
+            wdt_core::signaling::sender_session::VideoSettings {
+                resolution: wdt_core::signaling::sender_session::ResolutionPreset::P720,
+                fps: 60,
+                quality: wdt_core::signaling::sender_session::QualityPreset::Sharp,
+            }
+        );
+        assert!(ui.validate().is_ok());
+        assert!(VideoSettingsUi::default().validate().is_ok());
     }
 
     /// Bundel dapat ditulis ke berkas dan dibaca kembali (validasi I/O dasar).

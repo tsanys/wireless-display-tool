@@ -206,6 +206,17 @@ pub fn default_encoder(config: EncoderConfig) -> Result<macos::MacosEncoder, Enc
     macos::MacosEncoder::new(config)
 }
 
+/// Batas encoder untuk gating UI (R7): resolusi maksimum yang didukung.
+///
+/// Nilai konservatif berbasis level H.264 yang kita negosiasikan di SDP
+/// (level 4.2 = 42e02a, aman untuk 1920×1080@60 pada kedua platform target).
+/// Encoder hardware (VideoToolbox/Media Foundation) praktis selalu menerima
+/// 1080p; menaikkan nilai ini menuntut bump level SDP.
+pub const ENCODER_MAX_WIDTH: u32 = 1920;
+pub const ENCODER_MAX_HEIGHT: u32 = 1080;
+/// fps maksimum yang diiklankan di SDP (`a=framerate`/expected frame rate).
+pub const ENCODER_MAX_FPS: u32 = 60;
+
 #[cfg(test)]
 mod tests {
     use super::*;

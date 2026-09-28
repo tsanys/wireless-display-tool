@@ -42,6 +42,22 @@ interface PipelineStats { frames: number; skipped: number; errors: number; fps: 
 
 type AudioRoute = "laptop" | "tv" | "both" | "muted";
 type DisplayMode = "mirror" | "extended";
+type VideoResolution = "p1080" | "p720";
+type VideoFps = "fps30" | "fps60";
+type VideoQuality = "balanced" | "sharp";
+interface VideoSettingsUi {
+  resolution: VideoResolution;
+  frameRate: VideoFps;
+  quality: VideoQuality;
+}
+
+function isVideoResolution(v: unknown): v is VideoResolution { return v === "p1080" || v === "p720"; }
+function isVideoFps(v: unknown): v is VideoFps { return v === "fps30" || v === "fps60"; }
+function isVideoQuality(v: unknown): v is VideoQuality { return v === "balanced" || v === "sharp"; }
+
+const VIDEO_RESOLUTION_LABELS: Record<VideoResolution, string> = { p1080: "1080p", p720: "720p" };
+const VIDEO_FPS_LABELS: Record<VideoFps, string> = { fps30: "30 fps", fps60: "60 fps" };
+const VIDEO_QUALITY_LABELS: Record<VideoQuality, string> = { balanced: "Seimbang", sharp: "Tajam (teks)" };
 
 interface AudioStats {
   packetsSent: number;
@@ -75,6 +91,7 @@ let displayMode: DisplayMode = "mirror";
 let selectedDisplayId = "";
 let displayNotice = "";
 let audioRoute: AudioRoute = "laptop";
+let videoSettings: VideoSettingsUi = { resolution: "p1080", frameRate: "fps30", quality: "balanced" };
 let audioStats: AudioStats | null = null;
 let audioRouteChanging = false;
 let audioNotice: string | null = null;
@@ -310,6 +327,7 @@ function renderSession(): void {
     ? (selectedDisplay()?.name ?? "Cerminkan layar")
     : "Layar tambahan";
   $("summary-audio").textContent = AUDIO_ROUTE_LABELS[audioRoute];
+  $("summary-quality").textContent = `${VIDEO_RESOLUTION_LABELS[videoSettings.resolution]} · ${VIDEO_FPS_LABELS[videoSettings.frameRate]} · ${VIDEO_QUALITY_LABELS[videoSettings.quality]}`;
 
   const callout = $("status-callout");
   if (mirrorStatus.state === "error") {
@@ -343,6 +361,10 @@ function renderSession(): void {
   });
   const displaySelect = $("display-source") as HTMLSelectElement;
   displaySelect.disabled = settingsLocked || displayMode !== "mirror" || !selectedDisplayId;
+  ($("video-resolution") as HTMLSelectElement).disabled = settingsLocked;
+  ($("video-fps") as HTMLSelectElement).disabled = settingsLocked;
+  ($("video-quality") as HTMLSelectElement).disabled = settingsLocked;
+  $("video-settings-note").textContent = `${VIDEO_RESOLUTION_LABELS[videoSettings.resolution]} · ${VIDEO_FPS_LABELS[videoSettings.frameRate]} · ${VIDEO_QUALITY_LABELS[videoSettings.quality]}`;
 
   const start = $("btn-start") as HTMLButtonElement;
   start.disabled = !selectedReceiver || !selectedDisplayId || !pairingInfo?.serverRunning || isBusy || isConnected;
@@ -412,7 +434,7 @@ function persistSettings(): void {
   if (!selectedReceiver) return;
   localStorage.setItem(
     `wdt:settings:${selectedReceiver}`,
-    JSON.stringify({ displayMode, displayId: selectedDisplayId, audioRoute }),
+    JSON.stringify({ displayMode, displayId: selectedDisplayId, audioRoute, videoSettings }),
   );
 }
 
@@ -424,6 +446,9 @@ function restoreSettings(): void {
     if (saved?.displayMode === "mirror" || saved?.displayMode === "extended") displayMode = saved.displayMode;
     if (typeof saved?.displayId === "string") savedDisplayId = saved.displayId;
     if (isAudioRoute(saved?.audioRoute)) audioRoute = saved.audioRoute;
+    if (isVideoResolution(saved?.videoSettings?.resolution)) videoSettings.resolution = saved.videoSettings.resolution;
+    if (isVideoFps(saved?.videoSettings?.frameRate)) videoSettings.frameRate = saved.videoSettings.frameRate;
+    if (isVideoQuality(saved?.videoSettings?.quality)) videoSettings.quality = saved.videoSettings.quality;
   } catch {
     // Setting lama yang korup diabaikan; default aman tetap digunakan.
   }
@@ -443,6 +468,9 @@ function restoreSettings(): void {
   }
   document.querySelector<HTMLInputElement>(`input[name="display-mode"][value="${displayMode}"]`)!.checked = true;
   document.querySelector<HTMLInputElement>(`input[name="audio-route"][value="${audioRoute}"]`)!.checked = true;
+  ($("video-resolution") as HTMLSelectElement).value = videoSettings.resolution;
+  ($("video-fps") as HTMLSelectElement).value = videoSettings.frameRate;
+  ($("video-quality") as HTMLSelectElement).value = videoSettings.quality;
 }
 
 async function renderPairing(): Promise<void> {
@@ -544,6 +572,17 @@ function bindControls(): void {
       renderSession();
     });
   });
+  for (const id of ["video-resolution", "video-fps", "video-quality"] as const) {
+    $(id).addEventListener("change", () => {
+      videoSettings = {
+        resolution: ($("video-resolution") as HTMLSelectElement).value as VideoResolution,
+        frameRate: ($("video-fps") as HTMLSelectElement).value as VideoFps,
+        quality: ($("video-quality") as HTMLSelectElement).value as VideoQuality,
+      };
+      persistSettings();
+      renderSession();
+    });
+  }
   $("display-source").addEventListener("change", (event) => {
     selectedDisplayId = (event.currentTarget as HTMLSelectElement).value;
     displayNotice = "";
@@ -579,7 +618,11 @@ function bindControls(): void {
             ? { kind: "mirror", displayId: selectedDisplayId }
             : { kind: "extended", width: 1920, height: 1080, refreshHz: 30 },
           audioRoute,
-          quality: "auto",
+          video: {
+            resolution: videoSettings.resolution,
+            frameRate: videoSettings.frameRate,
+            quality: videoSettings.quality,
+          },
         },
       });
     } catch (error) {

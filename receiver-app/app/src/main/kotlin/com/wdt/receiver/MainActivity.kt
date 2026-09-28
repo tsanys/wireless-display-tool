@@ -13,6 +13,7 @@ import android.view.WindowManager
 import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputMethodManager
 import android.widget.Button
+import android.widget.CheckBox
 import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.TextView
@@ -57,6 +58,7 @@ class MainActivity : Activity() {
     private companion object {
         const val TAG = "WdtMain"
         const val SESSION_PANEL_TIMEOUT_MS = 4_000L
+        const val LOW_LATENCY_PREF = "low_latency"
     }
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
@@ -78,6 +80,7 @@ class MainActivity : Activity() {
     private lateinit var btnConnectManual: Button
     private lateinit var btnRetry: Button
     private lateinit var btnManualToggle: Button
+    private lateinit var chkLowLatency: CheckBox
     private lateinit var btnDisconnect: Button
     private lateinit var btnHideSession: Button
     private lateinit var manualSection: View
@@ -138,6 +141,7 @@ class MainActivity : Activity() {
         btnConnectManual = findViewById(R.id.btn_connect_manual)
         btnRetry = findViewById(R.id.btn_retry)
         btnManualToggle = findViewById(R.id.btn_manual_toggle)
+        chkLowLatency = findViewById(R.id.chk_low_latency)
         btnDisconnect = findViewById(R.id.btn_disconnect)
         btnHideSession = findViewById(R.id.btn_hide_session)
         manualSection = findViewById(R.id.manual_section)
@@ -149,6 +153,18 @@ class MainActivity : Activity() {
         findViewById<TextView>(R.id.manual_label).text = getString(R.string.manual_label)
         btnConnectManual.text = getString(R.string.btn_connect)
         btnRetry.text = getString(R.string.btn_retry)
+        chkLowLatency.text = getString(R.string.low_latency_label)
+
+        // Trial WebRTC hanya dapat diterapkan sebelum factory pertama dibuat.
+        val prefs = getPreferences(Context.MODE_PRIVATE)
+        chkLowLatency.isChecked = prefs.getBoolean(LOW_LATENCY_PREF, false)
+        chkLowLatency.setOnCheckedChangeListener { _, isChecked ->
+            prefs.edit().putBoolean(LOW_LATENCY_PREF, isChecked).apply()
+            if (ReceiverPeerConnection.isFactoryInitialized() || peer != null || signaling != null || state != UiState.SCANNING) {
+                chkLowLatency.isChecked = !isChecked
+                showTransientError(getString(R.string.low_latency_restart))
+            }
+        }
 
         // --- Capability detection (tier device) ---
         scope.launch {
@@ -410,8 +426,11 @@ class MainActivity : Activity() {
     private fun buildPeer(): ReceiverPeerConnection {
         val epoch = ++peerEpoch
         fun current() = epoch == peerEpoch
+        val lowLatency = getPreferences(Context.MODE_PRIVATE).getBoolean(LOW_LATENCY_PREF, false)
+        Log.i(TAG, "peer lowLatency=$lowLatency")
         val p = ReceiverPeerConnection(
             context = this,
+            lowLatency = lowLatency,
             onIceCandidate = { candidate: IceCandidateDto ->
                 if (current()) {
                     Log.i(TAG, "ICE lokal -> ${candidate.candidate}")

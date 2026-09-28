@@ -251,6 +251,16 @@
                         android:textColor="@color/selector_secondary_text"
                         android:textSize="15sp" />
 
+                    <CheckBox
+                        android:id="@+id/chk_low_latency"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:minHeight="48dp"
+                        android:layout_marginTop="10dp"
+                        android:focusable="true"
+                        android:textColor="#EAF2F8"
+                        android:textSize="14sp" />
+
                     <LinearLayout
                         android:id="@+id/manual_section"
                         android:layout_width="match_parent"

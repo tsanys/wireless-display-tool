@@ -60,14 +60,79 @@ pub enum CaptureTarget {
     },
 }
 
+/// Resolusi target stream (diakhiri ke rata-atas genap oleh pipeline).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ResolutionPreset {
+    /// 1080p (default; kanvas 1920×1080, TV menampilkan 1:1).
+    P1080,
+    /// 720p (hemat CPU/jaringan untuk TV low-end).
+    P720,
+}
+
+impl ResolutionPreset {
+    pub fn dimensions(self) -> (u32, u32) {
+        match self {
+            ResolutionPreset::P1080 => (1920, 1080),
+            ResolutionPreset::P720 => (1280, 720),
+        }
+    }
+}
+
+/// Preset kualitas encoder.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum QualityPreset {
+    /// Konstanta kualitas 0.9, cap 10 Mbps (perilaku R3–R6).
+    Balanced,
+    /// Ketajaman teks: kualitas 0.95, cap 18 Mbps (LAN stabil).
+    Sharp,
+}
+
+impl QualityPreset {
+    pub fn quality(self) -> f32 {
+        match self {
+            QualityPreset::Balanced => 0.9,
+            QualityPreset::Sharp => 0.95,
+        }
+    }
+
+    /// Cap bitrate (bit/s) — menjadi `bitrate_bps` pipeline.
+    pub fn bitrate_cap_bps(self) -> u32 {
+        match self {
+            QualityPreset::Balanced => 10_000_000,
+            QualityPreset::Sharp => 18_000_000,
+        }
+    }
+}
+
+/// Pengaturan video user-facing untuk satu sesi.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct VideoSettings {
+    pub resolution: ResolutionPreset,
+    /// 30 atau 60 fps.
+    pub fps: u32,
+    pub quality: QualityPreset,
+}
+
+impl Default for VideoSettings {
+    fn default() -> Self {
+        Self {
+            resolution: ResolutionPreset::P1080,
+            fps: 30,
+            quality: QualityPreset::Balanced,
+        }
+    }
+}
+
 /// Perintah ke sesi sender.
 #[derive(Debug)]
 pub enum SessionCmd {
     /// Buat offer dan kirim ke receiver aktif. `target` memilih display fisik
-    /// atau virtual; `audio_route` menentukan pengiriman sample audio.
+    /// atau virtual; `audio_route` menentukan pengiriman sample audio;
+    /// `video` mengatur resolusi/fps/kualitas pipeline.
     StartOffer {
         target: CaptureTarget,
         audio_route: AudioRoute,
+        video: VideoSettings,
     },
     /// Ubah tujuan suara saat sesi aktif (live switching, tanpa renegosiasi).
     SetAudioRoute(AudioRoute),
@@ -226,6 +291,7 @@ async fn drive(
     let mut pipeline: Option<PipelineHandle> = None;
     let mut audio: Option<AudioPipelineHandle> = None;
     let mut selected_target: Option<CaptureTarget> = None;
+    let mut video_settings = VideoSettings::default();
     let mut audio_route: AudioRoute = AudioRoute::Laptop;
     // Kemampuan receiver aktif (None = receiver lama / belum terhubung).
     let mut receiver_caps: Option<ReceiverCaps> = None;
@@ -243,6 +309,7 @@ async fn drive(
                             &mut pipeline,
                             peer.as_ref(),
                             selected_target.as_ref(),
+                            video_settings,
                             &events,
                             h264,
                         ).await {
@@ -259,7 +326,7 @@ async fn drive(
             }
             cmd = cmds.recv() => {
                 match cmd {
-                    Some(SessionCmd::StartOffer { target, audio_route: route }) => {
+                    Some(SessionCmd::StartOffer { target, audio_route: route, video }) => {
                         if peer.is_some() {
                             let _ = events.send(SessionEvent::Error("offer sudah berjalan".into()));
                             continue;
@@ -317,6 +384,7 @@ async fn drive(
                             },
                         ).await;
                         selected_target = Some(target);
+                        video_settings = video;
                         peer = Some(p);
                     }
                     Some(SessionCmd::SetAudioRoute(route)) => {
@@ -446,6 +514,7 @@ async fn drive(
                     &mut pipeline,
                     peer.as_ref(),
                     selected_target.as_ref(),
+                    video_settings,
                     &events,
                     h264,
                 )
@@ -618,6 +687,7 @@ struct PipelineHandle {
 fn start_pipeline(
     peer: &SenderPeer,
     target: &CaptureTarget,
+    video: VideoSettings,
     ssrc: rtc::rtp_transceiver::SSRC,
     payload_type: rtc::rtp_transceiver::PayloadType,
     events: &mpsc::UnboundedSender<SessionEvent>,
@@ -627,6 +697,7 @@ fn start_pipeline(
     let (stop_tx, stop_rx) = watch::channel(false);
     let ev = events.clone();
     let target = target.clone();
+    let video = video;
 
     let join = std::thread::Builder::new()
         .name("wdt-stream".to_string())
@@ -690,12 +761,12 @@ fn start_pipeline(
                         return;
                     }
                 };
-                // Q1 (T6): compose ke 1920x1080 = resolusi panel TV, sehingga
-                // TV menampilkan 1:1 TANPA scaling (menghilangkan softness).
+                // Q1 (T6): compose ke resolusi target (default 1920x1080 =
+                // panel TV umum) sehingga TV menampilkan 1:1 TANPA scaling.
                 // Konten laptop (mis. 16:10) di-letterbox proporsional oleh
                 // sender. Tidak ada upscale (lihat scale_letterbox_bgra).
                 let _ = capturer.display_size();
-                let (mut width, mut height) = (1920u32, 1080u32);
+                let (mut width, mut height) = video.resolution.dimensions();
                 // Override target untuk pengujian (mis. A/B latency resolusi):
                 //   WDT_TARGET=1280x720 <binary>
                 if let Ok(t) = std::env::var("WDT_TARGET")
@@ -714,11 +785,11 @@ fn start_pipeline(
                     .ok()
                     .and_then(|v| v.trim().parse::<u32>().ok())
                     .filter(|f| *f >= 1 && *f <= 120)
-                    .unwrap_or(base.fps);
+                    .unwrap_or(video.fps.clamp(1, 120));
                 let cfg = PipelineConfig {
                     width,
                     height,
-                    bitrate_bps: 10_000_000,
+                    bitrate_bps: video.quality.bitrate_cap_bps(),
                     fps,
                     ..base
                 };
@@ -748,8 +819,8 @@ fn start_pipeline(
                     profile: h264.profile,
                     entropy_mode: Some(h264.entropy_mode),
                     // T6: constant quality → teks/desktop lebih tajam.
-                    // 0.9 ≈ 1,8× detail IDR vs 0.8 (bench host).
-                    quality: Some(0.9),
+                    // Preset: Seimbang 0.9 · Tajam (teks) 0.95.
+                    quality: Some(video.quality.quality()),
                 }) {
                     Ok(e) => e,
                     Err(e) => {
@@ -787,6 +858,7 @@ async fn maybe_start_pipeline(
     pipeline: &mut Option<PipelineHandle>,
     peer: Option<&SenderPeer>,
     target: Option<&CaptureTarget>,
+    video: VideoSettings,
     events: &mpsc::UnboundedSender<SessionEvent>,
     h264: H264Tuning,
 ) -> Result<(), String> {
@@ -798,7 +870,7 @@ async fn maybe_start_pipeline(
         .video_send_params()
         .await
         .ok_or_else(|| "parameter kirim video belum ternegosiasi".to_string())?;
-    let handle = start_pipeline(peer, target, ssrc, payload_type, events, h264)?;
+    let handle = start_pipeline(peer, target, video, ssrc, payload_type, events, h264)?;
     *pipeline = Some(handle);
     Ok(())
 }
@@ -871,4 +943,22 @@ fn is_fatal_error(code: &super::protocol::ErrorCode) -> bool {
         code,
         ErrorCode::BadToken | ErrorCode::SenderTaken | ErrorCode::ProtoMismatch
     )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn video_settings_default_matches_production_path() {
+        let settings = VideoSettings::default();
+        assert_eq!(settings.resolution, ResolutionPreset::P1080);
+        assert_eq!(settings.fps, 30);
+        assert_eq!(settings.quality, QualityPreset::Balanced);
+        assert_eq!(settings.resolution.dimensions(), (1920, 1080));
+        assert_eq!(settings.quality.quality(), 0.9);
+        assert_eq!(settings.quality.bitrate_cap_bps(), 10_000_000);
+        assert_eq!(QualityPreset::Sharp.quality(), 0.95);
+        assert_eq!(QualityPreset::Sharp.bitrate_cap_bps(), 18_000_000);
+    }
 }
