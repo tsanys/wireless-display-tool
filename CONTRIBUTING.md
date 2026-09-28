@@ -73,6 +73,20 @@ python3 scripts/check_i18n.py       # ID/EN string parity guard
 > CI note: the macOS workspace job runs on pull requests and manual dispatch
 > only (private-repo CI minutes); the Windows and Android jobs run on every push.
 
+## Branching & branch protection
+
+- `main` is the only long-lived branch. Do all work on short-lived topic
+  branches (`feat/…`, `fix/…`, `docs/…`) and land it via **pull request**.
+- Direct pushes to `main` are reserved for the maintainer (`tsanys`); everyone
+  else merges through a PR. This is currently a convention — the repository is
+  private on a free plan, where GitHub does not offer branch protection — and
+  will be enforced by a repo ruleset (required PR, no force-push, no deletion,
+  maintainer-only bypass) once the repository goes public.
+- Never force-push to or delete `main`.
+- Status checks are intentionally **not** required for merging: docs-only changes
+  skip CI via `paths-ignore`, and a required check would lock those PRs. Keep
+  code PRs green voluntarily instead (see the checks above).
+
 ## Commit and PR conventions
 
 - Use **Conventional Commits**: `feat:`, `fix:`, `docs:`, `ci:`, `refactor:`,
