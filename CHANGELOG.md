@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-09-28
+
+First stable release of Wireless Display Tool: mirror a macOS/Windows screen to
+an Android TV over the LAN via WebRTC.
+
+Same feature set as `0.1.0-rc1`, plus:
+
 ### Added
 
 - Documentation: English open-source README, project `LICENSE` (MIT), and
@@ -58,5 +65,6 @@ Android TV over the LAN via WebRTC.
 - Extended display remains experimental (macOS virtual display).
 - TalkBack and glass-to-glass lip-sync are not yet verified.
 
-[Unreleased]: https://github.com/tsanys/wireless-display-tool/compare/v0.1.0-rc1...HEAD
+[Unreleased]: https://github.com/tsanys/wireless-display-tool/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/tsanys/wireless-display-tool/releases/tag/v0.1.0
 [0.1.0-rc1]: https://github.com/tsanys/wireless-display-tool/releases/tag/v0.1.0-rc1
