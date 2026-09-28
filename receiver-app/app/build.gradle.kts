@@ -51,7 +51,7 @@ dependencies {
     // WebSocket signaling client.
     // Pin 5.3.2: versi 5.x terbaru yang masih kompatibel compileSdk 34
     // (okhttp-android 5.4.0+ menuntut compileSdk 36/37).
-    implementation("com.squareup.okhttp3:okhttp:5.3.2")
+    implementation("com.squareup.okhttp3:okhttp:5.5.0")
     // JSON parsing kontrak signaling (tanpa annotation processor/plugin).
     implementation("com.google.code.gson:gson:2.14.0")
     // Coroutines untuk NSD/WS/WebRTC callback off-main-thread.
