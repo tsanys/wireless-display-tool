@@ -7,11 +7,15 @@ on:
       - "docs/**"
       - "**/*.md"
       - ".gitignore"
+      - "LICENSE"
+      - ".github/ISSUE_TEMPLATE/**"
   pull_request:
     paths-ignore:
       - "docs/**"
       - "**/*.md"
       - ".gitignore"
+      - "LICENSE"
+      - ".github/ISSUE_TEMPLATE/**"
   workflow_dispatch:
 
 concurrency:
