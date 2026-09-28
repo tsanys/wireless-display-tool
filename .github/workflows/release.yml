@@ -46,9 +46,12 @@ jobs:
         run: npx tauri build --target universal-apple-darwin --bundles dmg
       - name: Collect dmg
         run: |
+          set -euo pipefail
           mkdir -p dist-release
-          cp sender-app/src-tauri/target/universal-apple-darwin/release/bundle/dmg/*.dmg \
-            "dist-release/wdt-sender-${TAG}-macos-universal.dmg"
+          DMG="$(find . -path '*release/bundle/dmg/*.dmg' -not -path './node_modules/*' | head -1)"
+          echo "dmg: $DMG"
+          test -n "$DMG"
+          cp "$DMG" "dist-release/wdt-sender-${TAG}-macos-universal.dmg"
         env:
           TAG: ${{ github.event.inputs.tag || github.ref_name }}
       - uses: actions/upload-artifact@v4
@@ -80,9 +83,12 @@ jobs:
       - name: Collect exe
         shell: bash
         run: |
+          set -euo pipefail
           mkdir -p dist-release
-          cp sender-app/src-tauri/target/release/bundle/nsis/*.exe \
-            "dist-release/wdt-sender-${TAG}-windows-x64-setup.exe"
+          EXE="$(find . -path '*release/bundle/nsis/*.exe' -not -path './node_modules/*' | head -1)"
+          echo "exe: $EXE"
+          test -n "$EXE"
+          cp "$EXE" "dist-release/wdt-sender-${TAG}-windows-x64-setup.exe"
         env:
           TAG: ${{ github.event.inputs.tag || github.ref_name }}
       - uses: actions/upload-artifact@v4
@@ -113,9 +119,12 @@ jobs:
         run: ./gradlew --no-daemon assembleDebug
       - name: Collect apk
         run: |
+          set -euo pipefail
           mkdir -p dist-release
-          cp receiver-app/app/build/outputs/apk/debug/app-debug.apk \
-            "dist-release/wdt-receiver-${TAG}-android.apk"
+          APK="$(find . -path '*outputs/apk/debug/*.apk' -not -path './node_modules/*' | head -1)"
+          echo "apk: $APK"
+          test -n "$APK"
+          cp "$APK" "dist-release/wdt-receiver-${TAG}-android.apk"
         env:
           TAG: ${{ github.event.inputs.tag || github.ref_name }}
       - uses: actions/upload-artifact@v4
