@@ -1,4 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
+import { initLocale, locale, setLocale, t, tf, type Locale } from "./i18n";
 import { listen } from "@tauri-apps/api/event";
 import QRCode from "qrcode";
 
@@ -57,7 +58,7 @@ function isVideoQuality(v: unknown): v is VideoQuality { return v === "balanced"
 
 const VIDEO_RESOLUTION_LABELS: Record<VideoResolution, string> = { p1080: "1080p", p720: "720p" };
 const VIDEO_FPS_LABELS: Record<VideoFps, string> = { fps30: "30 fps", fps60: "60 fps" };
-const VIDEO_QUALITY_LABELS: Record<VideoQuality, string> = { balanced: "Seimbang", sharp: "Tajam (teks)" };
+const VIDEO_QUALITY_ID: Record<VideoQuality, string> = { balanced: "Seimbang", sharp: "Tajam (teks)" };
 
 interface AudioStats {
   packetsSent: number;
@@ -68,7 +69,7 @@ interface AudioStats {
   level: number;
 }
 
-const AUDIO_ROUTE_LABELS: Record<AudioRoute, string> = {
+const AUDIO_ROUTE_ID: Record<AudioRoute, string> = {
   laptop: "Laptop",
   tv: "TV",
   both: "Keduanya",
@@ -128,51 +129,51 @@ function ensureSelectedDisplay(): void {
 function sessionCopy(): { kicker: string; title: string; description: string } {
   if (mirrorStatus.state === "connected") {
     return {
-      kicker: "Koneksi aktif",
-      title: "Layar sedang dibagikan",
-      description: `${humanizeDeviceId(selectedReceiver)} menerima tampilan dari laptop ini.`,
+      kicker: t("Koneksi aktif"),
+      title: t("Layar sedang dibagikan"),
+      description: tf("{tv} menerima tampilan dari laptop ini.", { tv: humanizeDeviceId(selectedReceiver) }),
     };
   }
   if (busyStates.has(mirrorStatus.state)) {
     return {
-      kicker: mirrorStatus.state === "offering" ? "Menyiapkan sesi" : "Hampir selesai",
-      title: `Menghubungkan ke ${humanizeDeviceId(selectedReceiver)}…`,
-      description: "Biarkan WDT Receiver tetap terbuka di TV.",
+      kicker: mirrorStatus.state === "offering" ? t("Menyiapkan sesi") : t("Hampir selesai"),
+      title: tf("Menghubungkan ke {tv}…", { tv: humanizeDeviceId(selectedReceiver) }),
+      description: t("Biarkan WDT Receiver tetap terbuka di TV."),
     };
   }
   if (mirrorStatus.state === "error") {
     return {
-      kicker: "Koneksi membutuhkan perhatian",
-      title: "Belum dapat terhubung",
-      description: "Periksa TV dan jaringan, lalu coba lagi.",
+      kicker: t("Koneksi membutuhkan perhatian"),
+      title: t("Belum dapat terhubung"),
+      description: t("Periksa TV dan jaringan, lalu coba lagi."),
     };
   }
   if (selectedReceiver) {
     return {
-      kicker: "TV siap menerima layar",
-      title: "Siap berbagi",
-      description: "Periksa ringkasan pengaturan, lalu mulai berbagi.",
+      kicker: t("TV siap menerima layar"),
+      title: t("Siap berbagi"),
+      description: t("Periksa ringkasan pengaturan, lalu mulai berbagi."),
     };
   }
   return {
-    kicker: "Belum ada TV terhubung",
-    title: "Hubungkan TV untuk memulai",
-    description: "Buka WDT Receiver di TV pada jaringan yang sama.",
+    kicker: t("Belum ada TV terhubung"),
+    title: t("Hubungkan TV untuk memulai"),
+    description: t("Buka WDT Receiver di TV pada jaringan yang sama."),
   };
 }
 
 function friendlyError(message?: string): string {
   const raw = message?.trim();
-  if (!raw) return "TV tidak merespons. Pastikan kedua perangkat memakai jaringan yang sama.";
+  if (!raw) return t("TV tidak merespons. Pastikan kedua perangkat memakai jaringan yang sama.");
   const normalized = raw.toLowerCase();
   if (normalized.includes("permission") || normalized.includes("screen recording")) {
-    return "WDT belum memiliki izin merekam layar. Buka pengaturan privasi sistem, izinkan WDT, lalu coba lagi.";
+    return t("WDT belum memiliki izin merekam layar. Buka pengaturan privasi sistem, izinkan WDT, lalu coba lagi.");
   }
   if (normalized.includes("badtoken") || normalized.includes("token")) {
-    return "Kode pairing tidak cocok. Pastikan kode 6 digit di TV sama dengan yang tampil di sini.";
+    return t("Kode pairing tidak cocok. Pastikan kode 6 digit di TV sama dengan yang tampil di sini.");
   }
   if (normalized.includes("senderbusy") || normalized.includes("busy") || normalized.includes("sedang dipakai")) {
-    return "TV sedang dipakai sesi lain. Putuskan sesi itu di TV, lalu coba lagi.";
+    return t("TV sedang dipakai sesi lain. Putuskan sesi itu di TV, lalu coba lagi.");
   }
   if (
     normalized.includes("failed to fetch") ||
@@ -182,16 +183,16 @@ function friendlyError(message?: string): string {
     normalized.includes("ws ") ||
     normalized.includes("websocket")
   ) {
-    return "Tidak dapat menjangkau jaringan. Periksa koneksi Wi-Fi/lan, lalu coba lagi.";
+    return t("Tidak dapat menjangkau jaringan. Periksa koneksi Wi-Fi/lan, lalu coba lagi.");
   }
   if (normalized.includes("receiver") || normalized.includes("tv") || normalized.includes("peer")) {
-    return "Koneksi dengan TV terputus. Biarkan WDT Receiver terbuka, lalu coba lagi.";
+    return t("Koneksi dengan TV terputus. Biarkan WDT Receiver terbuka, lalu coba lagi.");
   }
   if (normalized.includes("capture") || normalized.includes("capturer")) {
-    return "Layar belum dapat dibaca. Periksa izin perekaman layar, lalu coba lagi.";
+    return t("Layar belum dapat dibaca. Periksa izin perekaman layar, lalu coba lagi.");
   }
   if (normalized.includes("encoder")) {
-    return "Encoder video perangkat tidak dapat dimulai. Tutup aplikasi lain yang memakai perekaman layar, lalu coba lagi.";
+    return t("Encoder video perangkat tidak dapat dimulai. Tutup aplikasi lain yang memakai perekaman layar, lalu coba lagi.");
   }
   return raw;
 }
@@ -202,13 +203,13 @@ function renderServiceStatus(): void {
   pill.classList.remove("pending", "ok", "error");
   if (!pairingInfo) {
     pill.classList.add("pending");
-    label.textContent = "Menyiapkan koneksi…";
+    label.textContent = t("Menyiapkan koneksi…");
   } else if (pairingInfo.serverRunning) {
     pill.classList.add("ok");
-    label.textContent = "Siap digunakan";
+    label.textContent = t("Siap digunakan");
   } else {
     pill.classList.add("error");
-    label.textContent = "Koneksi lokal bermasalah";
+    label.textContent = t("Koneksi lokal bermasalah");
   }
 }
 
@@ -218,7 +219,7 @@ function renderReceivers(): void {
   if (receivers.length === 0) {
     const empty = document.createElement("div");
     empty.className = "receiver-empty";
-    empty.innerHTML = `<span class="receiver-radar" aria-hidden="true"><i></i></span><span><strong>Mencari TV…</strong><small>TV akan muncul otomatis</small></span>`;
+    empty.innerHTML = `<span class="receiver-radar" aria-hidden="true"><i></i></span><span><strong>${t("Mencari TV…")}</strong><small>${t("TV akan muncul otomatis")}</small></span>`;
     container.appendChild(empty);
     selectedReceiver = "";
     return;
@@ -235,7 +236,7 @@ function renderReceivers(): void {
     button.setAttribute("aria-pressed", String(selectedReceiver === id));
     button.innerHTML = `
       <span class="receiver-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="14" rx="2"/><path d="M9 21h6M12 18v3"/></svg></span>
-      <span><strong>${humanizeDeviceId(id)}</strong><small>Terhubung dan siap</small></span>
+      <span><strong>${humanizeDeviceId(id)}</strong><small>${t("Terhubung dan siap")}</small></span>
       <span class="selected-check" aria-hidden="true">✓</span>`;
     button.onclick = () => {
       selectedReceiver = id;
@@ -255,7 +256,7 @@ function renderCapabilities(): void {
   $("extended-badge").hidden = capabilities.virtualDisplay.available;
   $("extended-reason").textContent = capabilities.virtualDisplay.available
     ? "Eksperimental · macOS memakai API tidak resmi; bisa berubah setelah pembaruan sistem"
-    : (capabilities.virtualDisplay.reason ?? "Belum tersedia");
+    : (capabilities.virtualDisplay.reason ?? t("Belum tersedia"));
 
   ensureSelectedDisplay();
   const displaySelect = $("display-source") as HTMLSelectElement;
@@ -269,7 +270,7 @@ function renderCapabilities(): void {
   }
   if (capabilities.displays.length === 0) {
     const option = document.createElement("option");
-    option.textContent = "Tidak ada layar tersedia";
+    option.textContent = t("Tidak ada layar tersedia");
     displaySelect.appendChild(option);
   }
   $("display-source-control").hidden = displayMode !== "mirror";
@@ -277,7 +278,7 @@ function renderCapabilities(): void {
   displayNote.classList.toggle("notice", Boolean(displayNotice));
   displayNote.textContent = displayNotice || (capabilities.displays.length > 1
     ? `${capabilities.displays.length} layar terdeteksi. Pilih layar yang ingin ditampilkan di TV.`
-    : "Layar ini akan dicerminkan ke TV.");
+    : t("Layar ini akan dicerminkan ke TV."));
 
   const tvAudioAvailable = capabilities.systemAudioCapture.available && capabilities.receiverAudio;
   for (const value of ["tv", "both"] as const) {
@@ -286,9 +287,9 @@ function renderCapabilities(): void {
     input.closest("label")?.classList.toggle("is-disabled", input.disabled);
   }
   $("audio-reason").textContent = tvAudioAvailable
-    ? "Audio sistem dapat dikirim ke TV."
+    ? t("Audio sistem dapat dikirim ke TV.")
     : (capabilities.systemAudioCapture.reason
-        ?? (capabilities.receiverAudio ? "Audio TV belum siap." : "TV ini belum mendukung audio."));
+        ?? (capabilities.receiverAudio ? t("Audio TV belum siap.") : t("TV ini belum mendukung audio.")));
 
   // Peringatan jujur per route.
   const warning = $("audio-warning");
@@ -297,10 +298,10 @@ function renderCapabilities(): void {
     warning.textContent = "";
   } else if (audioRoute === "tv") {
     warning.hidden = false;
-    warning.textContent = "Laptop tidak dapat dipastikan senyap secara aman. Matikan volume laptop bila suara masih terdengar.";
+    warning.textContent = t("Laptop tidak dapat dipastikan senyap secara aman. Matikan volume laptop bila suara masih terdengar.");
   } else if (audioRoute === "both") {
     warning.hidden = false;
-    warning.textContent = "Suara laptop dan TV bisa terasa tidak sinkron karena perbedaan jarak dan latensi jaringan.";
+    warning.textContent = t("Suara laptop dan TV bisa terasa tidak sinkron karena perbedaan jarak dan latensi jaringan.");
   } else if (audioNotice) {
     warning.hidden = false;
     warning.textContent = audioNotice;
@@ -317,17 +318,17 @@ function renderSession(): void {
   $("session-description").textContent = copy.description;
   document.body.dataset.sessionState = mirrorStatus.state;
 
-  const tvName = selectedReceiver ? humanizeDeviceId(selectedReceiver) : "Belum dipilih";
+  const tvName = selectedReceiver ? humanizeDeviceId(selectedReceiver) : t("Belum dipilih");
   $("tv-device-label").textContent = selectedReceiver ? tvName : "TV tujuan";
   $("tv-screen-label").textContent = mirrorStatus.state === "connected"
-    ? "Terhubung"
-    : selectedReceiver ? tvName : "Menunggu TV";
+    ? t("Terhubung")
+    : selectedReceiver ? tvName : t("Menunggu TV");
   $("summary-tv").textContent = tvName;
   $("summary-display").textContent = displayMode === "mirror"
     ? (selectedDisplay()?.name ?? "Cerminkan layar")
-    : "Layar tambahan";
-  $("summary-audio").textContent = AUDIO_ROUTE_LABELS[audioRoute];
-  $("summary-quality").textContent = `${VIDEO_RESOLUTION_LABELS[videoSettings.resolution]} · ${VIDEO_FPS_LABELS[videoSettings.frameRate]} · ${VIDEO_QUALITY_LABELS[videoSettings.quality]}`;
+    : t("Layar tambahan");
+  $("summary-audio").textContent = t(AUDIO_ROUTE_ID[audioRoute]);
+  $("summary-quality").textContent = `${VIDEO_RESOLUTION_LABELS[videoSettings.resolution]} · ${VIDEO_FPS_LABELS[videoSettings.frameRate]} · ${t(VIDEO_QUALITY_ID[videoSettings.quality])}`;
 
   const callout = $("status-callout");
   if (mirrorStatus.state === "error") {
@@ -335,10 +336,10 @@ function renderSession(): void {
     $("status-callout-text").textContent = friendlyError(mirrorStatus.message);
   } else if (pairingInfo && !pairingInfo.serverRunning) {
     callout.hidden = false;
-    $("status-callout-text").textContent = pairingInfo.serverError ?? "Layanan koneksi lokal tidak dapat dimulai.";
+    $("status-callout-text").textContent = pairingInfo.serverError ?? t("Layanan koneksi lokal tidak dapat dimulai.");
   } else if (mirrorStatus.state === "idle" && mirrorStatus.message && !selectedReceiver) {
     callout.hidden = false;
-    $("status-callout-text").textContent = "Koneksi TV terputus. Buka kembali WDT Receiver; TV akan muncul otomatis.";
+    $("status-callout-text").textContent = t("Koneksi TV terputus. Buka kembali WDT Receiver; TV akan muncul otomatis.");
   } else {
     callout.hidden = true;
   }
@@ -364,16 +365,16 @@ function renderSession(): void {
   ($("video-resolution") as HTMLSelectElement).disabled = settingsLocked;
   ($("video-fps") as HTMLSelectElement).disabled = settingsLocked;
   ($("video-quality") as HTMLSelectElement).disabled = settingsLocked;
-  $("video-settings-note").textContent = `${VIDEO_RESOLUTION_LABELS[videoSettings.resolution]} · ${VIDEO_FPS_LABELS[videoSettings.frameRate]} · ${VIDEO_QUALITY_LABELS[videoSettings.quality]}`;
+  $("video-settings-note").textContent = `${VIDEO_RESOLUTION_LABELS[videoSettings.resolution]} · ${VIDEO_FPS_LABELS[videoSettings.frameRate]} · ${t(VIDEO_QUALITY_ID[videoSettings.quality])}`;
 
   const start = $("btn-start") as HTMLButtonElement;
   start.disabled = !selectedReceiver || !selectedDisplayId || !pairingInfo?.serverRunning || isBusy || isConnected;
   start.hidden = isConnected;
   $("start-label").textContent = isBusy
-    ? "Menghubungkan…"
+    ? t("Menghubungkan…")
     : mirrorStatus.state === "error"
       ? "Coba lagi"
-      : "Mulai berbagi";
+      : t("Mulai berbagi");
   $("btn-stop").hidden = !(isBusy || isConnected);
 
   const liveStats = $("live-stats");
@@ -381,7 +382,7 @@ function renderSession(): void {
   if (isConnected) {
     $("mirror-stats").textContent = pipelineStats
       ? `${pipelineStats.fps.toFixed(1)} fps · ${pipelineStats.skipped} frame dilewati`
-      : pipelineInfo ? `${pipelineInfo.width}×${pipelineInfo.height} · ${pipelineInfo.fps} fps` : "Menyiapkan statistik…";
+      : pipelineInfo ? `${pipelineInfo.width}×${pipelineInfo.height} · ${pipelineInfo.fps} fps` : t("Menyiapkan statistik…");
   }
 }
 
@@ -408,18 +409,18 @@ async function switchAudioRoute(next: AudioRoute, previous: AudioRoute): Promise
 }
 
 function renderDiagnostics(): void {
-  $("diagnostic-server").textContent = pairingInfo?.serverRunning ? "Aktif" : "Tidak aktif";
+  $("diagnostic-server").textContent = pairingInfo?.serverRunning ? t("Aktif") : t("Tidak aktif");
   $("diagnostic-address").textContent = pairingInfo?.serverRunning ? `${pairingInfo.ip}:${pairingInfo.port}` : "—";
-  $("diagnostic-tv").textContent = selectedReceiver ? humanizeDeviceId(selectedReceiver) : "Belum terhubung";
+  $("diagnostic-tv").textContent = selectedReceiver ? humanizeDeviceId(selectedReceiver) : t("Belum terhubung");
   $("diagnostic-session").textContent = mirrorStatus.state;
   $("diagnostic-pipeline").textContent = pipelineInfo
     ? `${pipelineInfo.width}×${pipelineInfo.height}@${pipelineInfo.fps} · PT ${pipelineInfo.payloadType}`
-    : "Belum aktif";
+    : t("Belum aktif");
   $("diagnostic-audio").textContent = audioStats
-    ? `${AUDIO_ROUTE_LABELS[audioRoute]} · ${audioStats.packetsSent} paket · ${(audioStats.sentMs / 1000).toFixed(1)} dtk`
+    ? `${t(AUDIO_ROUTE_ID[audioRoute])} · ${audioStats.packetsSent} paket · ${(audioStats.sentMs / 1000).toFixed(1)} dtk`
       + (audioStats.errors > 0 ? ` · ${audioStats.errors} error` : "")
       + (audioStats.reconnects > 0 ? ` · ${audioStats.reconnects} reconnect` : "")
-    : AUDIO_ROUTE_LABELS[audioRoute];
+    : t(AUDIO_ROUTE_ID[audioRoute]);
 }
 
 function renderAll(): void {
@@ -645,13 +646,21 @@ function bindControls(): void {
   $("btn-pairing").onclick = () => ($("pairing-dialog") as HTMLDialogElement).showModal();
   $("btn-help").onclick = () => void openHelp();
   $("btn-diagnostics").onclick = () => ($("diagnostics-dialog") as HTMLDialogElement).showModal();
+  const langSelect = $("language-select") as HTMLSelectElement;
+  langSelect.value = locale();
+  langSelect.addEventListener("change", () => {
+    setLocale(langSelect.value as Locale);
+    // Terjemahan statis sudah ditukar DOM-walk; segarkan teks dinamis.
+    langSelect.value = locale();
+    renderAll();
+  });
   $("btn-export-diagnostics").onclick = async () => {
     const note = $("diagnostic-export-note");
     if (!isTauri) {
-      note.textContent = "Ekspor tersedia di aplikasi WDT (bukan mode pratinjau).";
+      note.textContent = t("Ekspor tersedia di aplikasi WDT (bukan mode pratinjau).");
       return;
     }
-    note.textContent = "Menyiapkan berkas…";
+    note.textContent = t("Menyiapkan berkas…");
     try {
       const path = await invoke<string>("export_diagnostics");
       note.textContent = `Tersimpan lokal: ${path}`;
@@ -662,8 +671,8 @@ function bindControls(): void {
   $("btn-copy-pairing").onclick = async () => {
     if (!pairingInfo?.pairingString) return;
     await navigator.clipboard.writeText(pairingInfo.pairingString);
-    $("btn-copy-pairing").textContent = "Detail tersalin";
-    window.setTimeout(() => { $("btn-copy-pairing").textContent = "Salin detail koneksi"; }, 1800);
+    $("btn-copy-pairing").textContent = t("Detail tersalin");
+    window.setTimeout(() => { $("btn-copy-pairing").textContent = t("Salin detail koneksi"); }, 1800);
   };
   document.querySelectorAll<HTMLDialogElement>("dialog").forEach((dialog) => {
     dialog.addEventListener("click", (event) => { if (event.target === dialog) dialog.close(); });
@@ -702,6 +711,7 @@ async function bindEvents(): Promise<void> {
 }
 
 window.addEventListener("DOMContentLoaded", async () => {
+  initLocale();
   bindControls();
   await bindEvents();
   await refreshAll();

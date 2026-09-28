@@ -608,6 +608,29 @@ body[data-session-state="connected"] .tv-screen { border-color: rgba(82, 211, 19
 .diagnostic-actions .secondary-button { margin-top: 0; }
 .diagnostic-actions .availability-note { margin-top: 10px; }
 
+.language-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+}
+.language-row label { color: var(--muted); font-size: 12px; font-weight: 650; }
+.language-row select {
+  min-height: 44px;
+  min-width: 150px;
+  padding: 0 14px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  color: var(--mist);
+  background: #122239;
+  font: inherit;
+  font-size: 12px;
+}
+.language-row select:focus-visible { outline: 3px solid rgba(70, 167, 255, 0.7); outline-offset: 2px; }
+
 @media (max-width: 860px) {
   .workspace { grid-template-columns: 300px minmax(0, 1fr); }
   .setup-rail { padding-inline: 22px; }

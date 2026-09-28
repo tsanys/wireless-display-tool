@@ -38,7 +38,7 @@ jobs:
       # tauri::generate_context!() memerlukan dist frontend ada saat compile.
       - name: Build frontend
         working-directory: sender-app
-        run: npm ci && npm run build
+        run: npm ci && npm run build && npm run i18n:check
       - name: Format check
         run: cargo fmt --all -- --check
       - name: Test workspace

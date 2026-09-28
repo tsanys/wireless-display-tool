@@ -55,3 +55,6 @@ core/examples/output/
 
 # State tooling lokal (worktrees agen) — jangan di-commit
 .kilo/
+
+# Artefak uji UI Playwright MCP
+sender-app/.playwright-mcp/
