@@ -46,13 +46,13 @@ class SignalingClient(
      * @param token token pairing 6-digit.
      * @param deviceId label TV (opsional).
      */
-    fun connect(host: String, port: Int, token: String, deviceId: String?) {
+    fun connect(host: String, port: Int, token: String, deviceId: String?, deviceName: String?) {
         val url = "ws://$host:$port${Protocol.WS_PATH}"
         Log.i(TAG, "connect $url")
         closedByUs = false
         helloSent = false
         val request = Request.Builder().url(url).build()
-        webSocket = client.newWebSocket(request, Listener(token, deviceId))
+        webSocket = client.newWebSocket(request, Listener(token, deviceId, deviceName))
     }
 
     /** Kirim SDP answer (receiver → sender via relay server). */
@@ -92,6 +92,7 @@ class SignalingClient(
     private inner class Listener(
         private val token: String,
         private val deviceId: String?,
+        private val deviceName: String?,
     ) : WebSocketListener() {
 
         override fun onOpen(webSocket: WebSocket, response: Response) {
@@ -99,7 +100,7 @@ class SignalingClient(
             if (!helloSent) {
                 helloSent = true
                 val hello = ServerMsgParser.encode(
-                    HelloOut(token = token, deviceId = deviceId),
+                    HelloOut(token = token, deviceId = deviceId, deviceName = deviceName),
                 )
                 webSocket.send(hello)
             }

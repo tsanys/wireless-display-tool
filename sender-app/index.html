@@ -2,225 +2,182 @@
 <html lang="id">
   <head>
     <meta charset="UTF-8" />
-    <link rel="stylesheet" href="/src/styles.css" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="color-scheme" content="dark" />
-    <title>WDT — Bagikan layar ke TV</title>
-    <script type="module" src="/src/main.ts" defer></script>
+    <meta name="color-scheme" content="light" />
+    <title>WDT Sender</title>
+    <link rel="stylesheet" href="/src/styles.css" />
+    <script type="module" src="/src/main.ts"></script>
   </head>
-
-  <body data-session-state="idle">
+  <body data-session-state="idle" data-has-receiver="false">
     <div class="app-shell">
       <header class="app-header">
-        <div class="brand" aria-label="Wireless Display Tool">
-          <span class="brand-mark" aria-hidden="true">
-            <svg viewBox="0 0 36 32">
-              <path d="M5 8.5h15a3 3 0 0 1 3 3v9a3 3 0 0 1-3 3H5a3 3 0 0 1-3-3v-9a3 3 0 0 1 3-3Z" />
-              <path d="M25.5 12.5c2.3.7 4 2.8 4 5.3s-1.7 4.6-4 5.3M25.5 8c4.7.8 8.2 4.9 8.2 9.8s-3.5 9-8.2 9.8" />
-            </svg>
-          </span>
-          <span><strong>WDT</strong><small>Wireless Display Tool</small></span>
-        </div>
-
+        <a class="brand" href="#main-content" aria-label="WDT Sender">
+          <span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i></span>
+          <span><strong>WDT</strong><small>Sender</small></span>
+        </a>
         <div class="header-actions">
-          <div id="service-pill" class="service-pill pending" role="status">
-            <span class="service-dot" aria-hidden="true"></span>
+          <div id="service-pill" class="service-state pending" role="status">
+            <span class="state-dot" aria-hidden="true"></span>
             <span id="service-label">Menyiapkan koneksi…</span>
           </div>
-          <button id="btn-help" class="icon-button" type="button" aria-label="Buka bantuan">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M9.7 9a2.5 2.5 0 1 1 3.6 2.25c-.9.45-1.3 1-1.3 1.75M12 17h.01" /></svg>
-          </button>
+          <button id="btn-help" class="icon-button" type="button" aria-label="Bantuan">?</button>
         </div>
       </header>
 
-      <main class="workspace">
-        <aside class="setup-rail" aria-label="Pengaturan berbagi">
-          <section class="setup-step" aria-labelledby="tv-step-title">
-            <div class="step-heading">
-              <span class="step-number">1</span>
-              <div><h2 id="tv-step-title">TV tujuan</h2><p>Pilih layar yang akan menerima tampilan.</p></div>
-            </div>
-            <div id="receiver-list" class="choice-stack" aria-live="polite"></div>
-            <button id="btn-pairing" class="text-button" type="button">Hubungkan TV dengan kode</button>
-          </section>
-
-          <section class="setup-step" aria-labelledby="display-step-title">
-            <div class="step-heading">
-              <span class="step-number">2</span>
-              <div><h2 id="display-step-title">Tampilan</h2><p>Tentukan cara TV digunakan.</p></div>
-            </div>
-            <div class="choice-stack" role="radiogroup" aria-labelledby="display-step-title">
-              <label class="option-row">
-                <input type="radio" name="display-mode" value="mirror" checked />
-                <span class="option-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="12" rx="2" /><path d="M8 21h8M12 17v4" /></svg></span>
-                <span class="option-copy"><strong>Cerminkan layar</strong><small>Tampilkan salah satu layar laptop di TV</small></span>
-                <span class="radio-mark" aria-hidden="true"></span>
-              </label>
-              <label id="extended-option" class="option-row is-disabled">
-                <input type="radio" name="display-mode" value="extended" disabled />
-                <span class="option-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="2" y="5" width="9" height="8" rx="1.5" /><rect x="13" y="9" width="9" height="8" rx="1.5" /><path d="m9 17 3-3 3 3" /></svg></span>
-                <span class="option-copy"><strong>Layar tambahan</strong><small id="extended-reason">Sedang disiapkan</small></span>
-                <span id="extended-badge" class="soon-badge">Segera</span>
-              </label>
-            </div>
-            <div id="display-source-control" class="display-source-control">
-              <label for="display-source">Layar yang dibagikan</label>
-              <div class="select-shell">
-                <span class="select-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="13" rx="2" /><path d="M8 21h8M12 17v4" /></svg></span>
-                <select id="display-source" aria-describedby="display-source-note"></select>
-                <span class="select-chevron" aria-hidden="true">⌄</span>
-              </div>
-              <p id="display-source-note" class="availability-note" role="status" aria-live="polite">Memeriksa layar yang tersedia…</p>
-            </div>
-            <div id="video-settings-control" class="display-source-control">
-              <label for="video-resolution">Kualitas gambar</label>
-              <div class="video-settings-row">
-                <div class="select-shell">
-                  <span class="select-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="13" rx="2" /><path d="M8 21h8M12 17v4" /></svg></span>
-                  <select id="video-resolution" aria-label="Resolusi">
-                    <option value="p1080" selected>1080p</option>
-                    <option value="p720">720p</option>
-                  </select>
-                  <span class="select-chevron" aria-hidden="true">⌄</span>
-                </div>
-                <div class="select-shell">
-                  <span class="select-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 3" /></svg></span>
-                  <select id="video-fps" aria-label="Frame rate">
-                    <option value="fps30" selected>30 fps</option>
-                    <option value="fps60">60 fps</option>
-                  </select>
-                  <span class="select-chevron" aria-hidden="true">⌄</span>
-                </div>
-                <div class="select-shell">
-                  <span class="select-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3l2.1 5.9L20 11l-5.9 2.1L12 19l-2.1-5.9L4 11l5.9-2.1z" /></svg></span>
-                  <select id="video-quality" aria-label="Kualitas">
-                    <option value="balanced" selected>Seimbang</option>
-                    <option value="sharp">Tajam (teks)</option>
-                  </select>
-                  <span class="select-chevron" aria-hidden="true">⌄</span>
-                </div>
-              </div>
-              <p id="video-settings-note" class="availability-note" role="status" aria-live="polite">1080p · 30 fps · Seimbang</p>
-            </div>
-          </section>
-
-          <section class="setup-step" aria-labelledby="audio-step-title">
-            <div class="step-heading">
-              <span class="step-number">3</span>
-              <div><h2 id="audio-step-title">Suara diputar di</h2><p>Pilih perangkat yang mengeluarkan suara.</p></div>
-            </div>
-            <div class="audio-switch" role="radiogroup" aria-labelledby="audio-step-title">
-              <label><input type="radio" name="audio-route" value="laptop" checked /><span>Laptop</span></label>
-              <label id="audio-tv-option" class="is-disabled" title="Audio ke TV belum siap"><input type="radio" name="audio-route" value="tv" disabled /><span>TV</span></label>
-              <label id="audio-both-option" class="is-disabled" title="Audio ke TV belum siap"><input type="radio" name="audio-route" value="both" disabled /><span>Keduanya</span></label>
-              <label><input type="radio" name="audio-route" value="muted" /><span>Tanpa suara</span></label>
-            </div>
-            <p id="audio-reason" class="availability-note" role="status" aria-live="polite">Audio tetap diputar dari laptop.</p>
-            <p id="audio-warning" class="availability-note notice" role="status" aria-live="polite" hidden></p>
-          </section>
-        </aside>
-
-        <section class="connection-stage" aria-labelledby="session-title">
+      <main id="main-content" class="workspace">
+        <section class="session-stage" aria-labelledby="session-title">
           <div class="session-heading">
-            <p id="session-kicker">Belum ada TV terhubung</p>
+            <p id="session-kicker" class="eyebrow">Belum ada TV terhubung</p>
             <h1 id="session-title">Hubungkan TV untuk memulai</h1>
-            <p id="session-description">Buka WDT Receiver di TV pada jaringan yang sama.</p>
+            <p id="session-description" class="lead">Buka WDT Receiver di TV pada jaringan yang sama.</p>
           </div>
 
-          <div class="device-link" aria-hidden="true">
-            <div class="device laptop-device">
-              <div class="laptop-screen"><span class="screen-glow"></span></div>
-              <span class="laptop-base"></span><span>Laptop ini</span>
+          <section class="pairing-ticket" aria-labelledby="pairing-heading">
+            <div class="pairing-copy">
+              <p class="ticket-label">Kode laptop ini</p>
+              <h2 id="pairing-heading">Masukkan di TV</h2>
+              <output id="pairing-token" class="pairing-code" aria-label="Kode pairing">••••••</output>
+              <p>Kode baru dibuat setiap kali WDT Sender dibuka.</p>
+              <button id="btn-copy-pairing" class="text-button light" type="button">Salin detail koneksi</button>
             </div>
-            <div class="signal-path">
-              <span class="signal-line"></span><span class="signal-pulse"></span>
-              <span class="signal-icon"><svg viewBox="0 0 24 24"><path d="M5 9.5a10 10 0 0 1 14 0M8 13a5.7 5.7 0 0 1 8 0M11 16.5a1.4 1.4 0 0 1 2 0" /></svg></span>
+            <div class="qr-frame" aria-label="QR pairing"><canvas id="qr-canvas"></canvas></div>
+          </section>
+
+          <section class="receiver-section" aria-labelledby="receiver-heading">
+            <div class="section-heading inline">
+              <div>
+                <p class="section-index">01</p>
+                <h2 id="receiver-heading">Pilih TV</h2>
+              </div>
+              <button id="btn-pairing" class="text-button" type="button">Detail pairing</button>
             </div>
-            <div class="device tv-device">
-              <div class="tv-screen"><span id="tv-screen-label">Menunggu TV</span></div>
-              <span class="tv-stand"></span><span id="tv-device-label">TV tujuan</span>
+            <div id="receiver-list" class="receiver-list" aria-live="polite"></div>
+          </section>
+
+          <div id="status-callout" class="status-callout" role="alert" hidden>
+            <span aria-hidden="true">!</span><p id="status-callout-text"></p>
+          </div>
+
+          <section class="session-summary" aria-labelledby="summary-heading">
+            <div class="section-heading inline">
+              <div>
+                <p class="section-index">03</p>
+                <h2 id="summary-heading">Ringkasan sesi</h2>
+              </div>
+              <div class="screen-status" aria-label="Status TV">
+                <span class="screen-glyph" aria-hidden="true"></span>
+                <span><strong id="tv-screen-label">Menunggu TV</strong><small id="tv-device-label">TV tujuan</small></span>
+              </div>
             </div>
+            <dl class="summary-grid">
+              <div><dt>Tujuan</dt><dd id="summary-tv">Belum dipilih</dd></div>
+              <div><dt>Layar</dt><dd id="summary-display">Layar utama</dd></div>
+              <div><dt>Suara</dt><dd id="summary-audio">Laptop</dd></div>
+              <div><dt>Kualitas</dt><dd id="summary-quality">1080p · 30 fps</dd></div>
+            </dl>
+          </section>
+
+          <div id="live-stats" class="live-strip" hidden>
+            <span class="live-indicator">LIVE</span><span id="mirror-stats">Menyiapkan statistik…</span>
           </div>
 
-          <div id="status-callout" class="status-callout" role="status" aria-live="polite" hidden>
-            <span class="callout-icon" aria-hidden="true">!</span><span id="status-callout-text"></span>
+          <div class="session-actions">
+            <button id="btn-start" class="primary-button" type="button"><span id="start-label">Mulai berbagi</span><span aria-hidden="true">→</span></button>
+            <button id="btn-stop" class="danger-button" type="button" hidden>Hentikan berbagi</button>
           </div>
-
-          <div class="share-summary" aria-label="Ringkasan pengaturan">
-            <div><span>Tujuan</span><strong id="summary-tv">Belum dipilih</strong></div>
-            <div><span>Tampilan</span><strong id="summary-display">Cerminkan layar</strong></div>
-            <div><span>Suara</span><strong id="summary-audio">Laptop</strong></div>
-            <div><span>Kualitas</span><strong id="summary-quality">1080p · 30 fps · Seimbang</strong></div>
-          </div>
-
-          <div id="live-stats" class="live-stats" hidden>
-            <span><i class="live-dot"></i> Berbagi aktif</span><span id="mirror-stats">Menyiapkan statistik…</span>
-          </div>
-
-          <div class="primary-actions">
-            <button id="btn-start" class="primary-button" type="button" disabled><span id="start-label">Mulai berbagi</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 6 6 6-6 6" /></svg></button>
-            <button id="btn-stop" class="danger-button" type="button" hidden>Berhenti berbagi</button>
-          </div>
-          <button id="btn-diagnostics" class="diagnostics-link" type="button">Lihat diagnostik koneksi</button>
         </section>
+
+        <aside class="control-panel" aria-label="Pengaturan sesi">
+          <div class="panel-heading">
+            <p class="eyebrow">Kontrol sesi</p>
+            <h2>Siapkan tampilan</h2>
+            <p>Pengaturan penting tetap terlihat. Opsi teknis disimpan di bagian lanjutan.</p>
+          </div>
+
+          <section class="control-section" aria-labelledby="display-heading">
+            <div class="control-title"><span>02</span><h3 id="display-heading">Tampilan</h3></div>
+            <div class="segmented-control">
+              <label><input type="radio" name="display-mode" value="mirror" checked /><span>Cerminkan</span></label>
+              <label id="extended-option" hidden><input type="radio" name="display-mode" value="extended" /><span>Layar tambahan <em id="extended-badge">Eksperimental</em></span></label>
+            </div>
+            <p id="extended-reason" class="field-note" hidden></p>
+            <label id="display-source-control" class="field-label">
+              <span>Layar yang dibagikan</span>
+              <select id="display-source"><option>Memuat layar…</option></select>
+            </label>
+            <p id="display-source-note" class="field-note">Layar ini akan dicerminkan ke TV.</p>
+          </section>
+
+          <section class="control-section" aria-labelledby="audio-heading">
+            <div class="control-title"><span>03</span><h3 id="audio-heading">Suara keluar dari</h3></div>
+            <div class="option-grid">
+              <label><input type="radio" name="audio-route" value="laptop" checked /><span><strong>Laptop</strong><small>Paling stabil</small></span></label>
+              <label><input type="radio" name="audio-route" value="tv" /><span><strong>TV</strong><small>Ikuti layar</small></span></label>
+              <label><input type="radio" name="audio-route" value="both" /><span><strong>Keduanya</strong><small>Untuk ruangan besar</small></span></label>
+              <label><input type="radio" name="audio-route" value="muted" /><span><strong>Tanpa suara</strong><small>Hanya gambar</small></span></label>
+            </div>
+            <p id="audio-reason" class="field-note"></p>
+            <p id="audio-warning" class="warning-note" hidden></p>
+          </section>
+
+          <details class="advanced-section">
+            <summary>Pengaturan lanjutan</summary>
+            <div class="advanced-body">
+              <div class="identity-editor">
+                <label class="field-label" for="device-name-input"><span>Nama laptop di TV</span></label>
+                <div class="inline-field"><input id="device-name-input" maxlength="32" autocomplete="off" /><button id="btn-save-device-name" type="button">Simpan</button></div>
+                <p id="device-name-note" class="field-note">Nama ini tetap tersimpan di perangkat.</p>
+              </div>
+              <div class="select-grid">
+                <label class="field-label"><span>Resolusi</span><select id="video-resolution"><option value="p1080">1080p</option><option value="p720">720p</option></select></label>
+                <label class="field-label"><span>Frame rate</span><select id="video-fps"><option value="fps30">30 fps</option><option value="fps60">60 fps</option></select></label>
+                <label class="field-label full"><span>Karakter gambar</span><select id="video-quality"><option value="balanced">Seimbang</option><option value="sharp">Tajam (teks)</option></select></label>
+              </div>
+              <p id="video-settings-note" class="field-note">1080p · 30 fps · Seimbang</p>
+              <button id="btn-diagnostics" class="secondary-button" type="button">Buka diagnostik</button>
+            </div>
+          </details>
+        </aside>
       </main>
     </div>
 
-    <dialog id="pairing-dialog" class="app-dialog">
-      <form method="dialog" class="dialog-panel">
-        <button class="dialog-close" value="close" aria-label="Tutup">×</button>
-        <div class="dialog-heading">
-          <span class="dialog-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 8a10 10 0 0 1 14 0M8 12a6 6 0 0 1 8 0M11 16a2 2 0 0 1 2 0" /></svg></span>
-          <div><h2>Hubungkan TV</h2><p>Buka WDT Receiver, lalu masukkan kode berikut.</p></div>
-        </div>
-        <div class="pairing-content">
-          <canvas id="qr-canvas" width="216" height="216" aria-label="Kode QR pairing"></canvas>
-          <div class="pairing-code-block">
-            <span>Kode pairing</span><strong id="pairing-token">••••••</strong>
-            <p>Kode ini tetap sama saat aplikasi dimulai ulang.</p>
-            <button id="btn-copy-pairing" class="secondary-button" type="button">Salin detail koneksi</button>
-          </div>
-        </div>
-        <details class="technical-details"><summary>Masukkan alamat secara manual</summary><code id="pairing-text">Menyiapkan alamat…</code></details>
+    <dialog id="pairing-dialog">
+      <form method="dialog" class="dialog-card">
+        <button class="dialog-close" aria-label="Tutup">×</button>
+        <p class="eyebrow">Detail pairing</p>
+        <h2>Hubungkan receiver secara manual</h2>
+        <p>Gunakan kode enam digit di layar utama. Bila penemuan otomatis gagal, detail berikut dapat membantu diagnostik.</p>
+        <code id="pairing-text">Menyiapkan…</code>
+        <button class="secondary-button" value="close">Selesai</button>
       </form>
     </dialog>
 
-    <dialog id="help-dialog" class="app-dialog narrow-dialog">
-      <form method="dialog" class="dialog-panel">
-        <button class="dialog-close" value="close" aria-label="Tutup">×</button>
-        <div class="dialog-heading"><span class="dialog-icon" aria-hidden="true">?</span><div><h2>Bantuan koneksi</h2><p>Periksa tiga hal ini bila TV belum terlihat.</p></div></div>
-        <ol class="help-steps">
-          <li><strong>Jaringan yang sama</strong><span>Pastikan laptop dan TV memakai router yang sama.</span></li>
-          <li><strong>Receiver terbuka</strong><span>Biarkan WDT Receiver terbuka di TV.</span></li>
-          <li><strong>Izin firewall</strong><span>Izinkan koneksi masuk untuk WDT di laptop.</span></li>
-        </ol>
-        <div class="language-row">
-          <label for="language-select">Bahasa</label>
-          <select id="language-select">
-            <option value="id">Indonesia</option>
-            <option value="en">English</option>
-          </select>
-        </div>
-        <details class="technical-details"><summary>Panduan firewall lengkap</summary><pre id="firewall-text">Memuat panduan…</pre></details>
+    <dialog id="help-dialog">
+      <form method="dialog" class="dialog-card">
+        <button class="dialog-close" aria-label="Tutup">×</button>
+        <p class="eyebrow">Bantuan</p>
+        <h2>TV belum muncul?</h2>
+        <ol class="help-list"><li>Pastikan WDT Receiver terbuka di TV.</li><li>Sambungkan laptop dan TV ke jaringan yang sama.</li><li>Izinkan koneksi lokal bila sistem memintanya.</li></ol>
+        <p id="firewall-text" class="technical-note">Memuat petunjuk jaringan…</p>
+        <label class="field-label"><span>Bahasa</span><select id="language-select"><option value="id">Bahasa Indonesia</option><option value="en">English</option></select></label>
       </form>
     </dialog>
 
-    <dialog id="diagnostics-dialog" class="app-dialog narrow-dialog">
-      <form method="dialog" class="dialog-panel">
-        <button class="dialog-close" value="close" aria-label="Tutup">×</button>
-        <div class="dialog-heading"><span class="dialog-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 19V9M10 19V5M16 19v-7M22 19V3" /></svg></span><div><h2>Diagnostik koneksi</h2><p>Detail teknis untuk pemeriksaan masalah.</p></div></div>
+    <dialog id="diagnostics-dialog">
+      <form method="dialog" class="dialog-card wide">
+        <button class="dialog-close" aria-label="Tutup">×</button>
+        <p class="eyebrow">Diagnostik lokal</p>
+        <h2>Status teknis</h2>
         <dl class="diagnostic-list">
-          <div><dt>Layanan lokal</dt><dd id="diagnostic-server">Menyiapkan…</dd></div>
+          <div><dt>Server</dt><dd id="diagnostic-server">—</dd></div>
           <div><dt>Alamat</dt><dd id="diagnostic-address">—</dd></div>
-          <div><dt>TV</dt><dd id="diagnostic-tv">Belum terhubung</dd></div>
-          <div><dt>Sesi</dt><dd id="diagnostic-session">Idle</dd></div>
-          <div><dt>Pipeline</dt><dd id="diagnostic-pipeline">Belum aktif</dd></div>
-          <div><dt>Audio</dt><dd id="diagnostic-audio">Belum aktif</dd></div>
+          <div><dt>TV</dt><dd id="diagnostic-tv">—</dd></div>
+          <div><dt>Sesi</dt><dd id="diagnostic-session">—</dd></div>
+          <div><dt>Video</dt><dd id="diagnostic-pipeline">—</dd></div>
+          <div><dt>Audio</dt><dd id="diagnostic-audio">—</dd></div>
         </dl>
-        <div class="diagnostic-actions">
-          <button id="btn-export-diagnostics" class="secondary-button" type="button">Ekspor berkas diagnostik</button>
-          <p id="diagnostic-export-note" class="availability-note" role="status" aria-live="polite">Tersimpan lokal — tidak dikirim ke internet.</p>
-        </div>
+        <button id="btn-export-diagnostics" class="secondary-button" type="button">Ekspor diagnostik</button>
+        <p id="diagnostic-export-note" class="field-note"></p>
       </form>
     </dialog>
   </body>

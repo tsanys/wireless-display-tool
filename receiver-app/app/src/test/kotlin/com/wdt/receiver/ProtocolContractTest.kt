@@ -27,10 +27,10 @@ class ProtocolContractTest {
         // Cermin test Rust wire_format_stable (protocol.rs). Receiver R4
         // mengiklankan caps audio.
         val json = ServerMsgParser.encode(
-            HelloOut(token = "123456", deviceId = "tv-living"),
+            HelloOut(token = "123456", deviceId = "tv-living", deviceName = "TV Ruang Keluarga"),
         )
         assertEquals(
-            """{"type":"hello","role":"receiver","proto":1,"token":"123456","deviceId":"tv-living","caps":{"audio":true}}""",
+            """{"type":"hello","role":"receiver","proto":1,"token":"123456","deviceId":"tv-living","deviceName":"TV Ruang Keluarga","caps":{"audio":true}}""",
             json,
         )
     }

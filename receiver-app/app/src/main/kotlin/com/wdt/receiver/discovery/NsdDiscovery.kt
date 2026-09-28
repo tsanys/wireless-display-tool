@@ -19,6 +19,8 @@ import android.util.Log
  * @property version TXT `ver` bila ada (versi sender app).
  */
 data class SenderInfo(
+    val deviceId: String?,
+    val displayName: String,
     val instanceName: String,
     val host: String,
     val port: Int,
@@ -51,8 +53,11 @@ class NsdDiscovery(
     private var multicastLock: WifiManager.MulticastLock? = null
     private var discovering = false
 
-    /** Sender yang sudah ter-resolve, key = instanceName. */
+    /** Sender yang sudah ter-resolve, key = stable deviceId bila tersedia. */
     private val resolved = LinkedHashMap<String, SenderInfo>()
+
+    /** Pemetaan nama instance ke key identity untuk menangani service lost. */
+    private val resolvedKeyByInstance = LinkedHashMap<String, String>()
 
     /** instanceName yang menunggu resolve (antrean serial). */
     private val pendingResolve = ArrayDeque<String>()
@@ -76,7 +81,8 @@ class NsdDiscovery(
         override fun onServiceLost(service: NsdServiceInfo) {
             val name = service.serviceName ?: return
             rawServices.remove(name)
-            if (resolved.remove(name) != null) {
+            val key = resolvedKeyByInstance.remove(name) ?: name
+            if (resolved.remove(key) != null) {
                 publish()
             }
         }
@@ -117,7 +123,14 @@ class NsdDiscovery(
                 resolveNext()
                 return
             }
-            resolved[name] = SenderInfo(
+            val deviceId = txtString(serviceInfo, "id")?.takeIf { it.isNotBlank() }
+            val key = deviceId ?: name
+            resolvedKeyByInstance.put(name, key)?.takeIf { it != key }?.let { resolved.remove(it) }
+            resolved[key] = SenderInfo(
+                deviceId = deviceId,
+                displayName = txtString(serviceInfo, "name")?.trim().orEmpty().ifBlank {
+                    name.removePrefix("WDT ").ifBlank { name }
+                },
                 instanceName = name,
                 host = host,
                 port = port,
@@ -134,6 +147,7 @@ class NsdDiscovery(
         if (discovering) return
         acquireLock()
         resolved.clear()
+        resolvedKeyByInstance.clear()
         rawServices.clear()
         pendingResolve.clear()
         resolving = false

@@ -62,6 +62,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let url = arg("--url").unwrap_or_else(|| usage());
     let token = arg("--token");
     let device_id = arg("--device-id");
+    let device_name = arg("--device-name");
 
     let (ws, _) = tokio_tungstenite::connect_async(&url).await?;
     println!("[receiver] WS terhubung ke {url}");
@@ -74,6 +75,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             proto: PROTO_VERSION,
             token,
             device_id,
+            device_name,
             caps: None,
         },
     )

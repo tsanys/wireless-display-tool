@@ -130,6 +130,10 @@ pub enum ClientMsg {
         token: Option<String>,
         #[serde(skip_serializing_if = "Option::is_none", rename = "deviceId")]
         device_id: Option<String>,
+        /// Nama ramah perangkat. Terpisah dari `deviceId` agar pengguna dapat
+        /// mengganti nama tanpa membuat perangkat dianggap baru.
+        #[serde(skip_serializing_if = "Option::is_none", rename = "deviceName")]
+        device_name: Option<String>,
         /// Kemampuan receiver (opsional; absen = receiver lama, video-only).
         #[serde(skip_serializing_if = "Option::is_none")]
         caps: Option<ReceiverCaps>,
@@ -179,6 +183,8 @@ pub enum ServerMsg {
     ReceiverJoined {
         #[serde(skip_serializing_if = "Option::is_none", rename = "deviceId")]
         device_id: Option<String>,
+        #[serde(skip_serializing_if = "Option::is_none", rename = "deviceName")]
+        device_name: Option<String>,
         /// Kemampuan receiver (diteruskan dari `hello`; absen = lama).
         #[serde(skip_serializing_if = "Option::is_none")]
         caps: Option<ReceiverCaps>,
@@ -215,11 +221,12 @@ mod tests {
             proto: 1,
             token: Some("123456".to_string()),
             device_id: Some("tv-living".to_string()),
+            device_name: Some("TV Ruang Keluarga".to_string()),
             caps: None,
         };
         assert_eq!(
             serde_json::to_string(&hello).unwrap(),
-            r#"{"type":"hello","role":"receiver","proto":1,"token":"123456","deviceId":"tv-living"}"#
+            r#"{"type":"hello","role":"receiver","proto":1,"token":"123456","deviceId":"tv-living","deviceName":"TV Ruang Keluarga"}"#
         );
 
         let ice = ServerMsg::Ice {
@@ -252,6 +259,7 @@ mod tests {
             proto: 1,
             token: Some("123456".to_string()),
             device_id: None,
+            device_name: None,
             caps: Some(ReceiverCaps { audio: true }),
         };
         assert_eq!(
@@ -261,6 +269,7 @@ mod tests {
 
         let joined = ServerMsg::ReceiverJoined {
             device_id: Some("tv".into()),
+            device_name: None,
             caps: Some(ReceiverCaps { audio: true }),
         };
         assert_eq!(

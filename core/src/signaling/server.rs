@@ -36,6 +36,8 @@ struct Slots {
     receiver: Option<PeerTx>,
     /// deviceId receiver aktif (untuk notifikasi saat sender connect belakangan).
     receiver_device_id: Option<String>,
+    /// Nama ramah receiver aktif.
+    receiver_device_name: Option<String>,
     /// Kemampuan receiver aktif (diteruskan dari hello; None = receiver lama).
     receiver_caps: Option<ReceiverCaps>,
 }
@@ -194,6 +196,7 @@ async fn handle_socket(state: Arc<SharedState>, peer_addr: SocketAddr, socket: W
                         proto,
                         token,
                         device_id,
+                        device_name,
                         caps,
                     } => {
                         if role.is_some() {
@@ -261,10 +264,12 @@ async fn handle_socket(state: Arc<SharedState>, peer_addr: SocketAddr, socket: W
                                 }
                                 slots.receiver = Some(out_tx.clone());
                                 slots.receiver_device_id = device_id.clone();
+                                slots.receiver_device_name = device_name.clone();
                                 slots.receiver_caps = caps;
                                 // Kabari sender bahwa receiver masuk.
                                 let notice = ServerMsg::ReceiverJoined {
                                     device_id: device_id.clone(),
+                                    device_name: device_name.clone(),
                                     caps,
                                 };
                                 if let Some(tx) = &slots.sender {
@@ -282,11 +287,22 @@ async fn handle_socket(state: Arc<SharedState>, peer_addr: SocketAddr, socket: W
                         );
                         // Kirim receiverJoined SETELAH helloOk (urutan penting).
                         if notify_joined {
-                            let (device_id, caps) = {
+                            let (device_id, device_name, caps) = {
                                 let slots = state.slots.lock().await;
-                                (slots.receiver_device_id.clone(), slots.receiver_caps)
+                                (
+                                    slots.receiver_device_id.clone(),
+                                    slots.receiver_device_name.clone(),
+                                    slots.receiver_caps,
+                                )
                             };
-                            send_msg(&out_tx, ServerMsg::ReceiverJoined { device_id, caps });
+                            send_msg(
+                                &out_tx,
+                                ServerMsg::ReceiverJoined {
+                                    device_id,
+                                    device_name,
+                                    caps,
+                                },
+                            );
                         }
                     }
                     ClientMsg::Offer { sdp } => {
@@ -422,6 +438,7 @@ async fn handle_socket(state: Arc<SharedState>, peer_addr: SocketAddr, socket: W
             if still_mine {
                 slots.receiver = None;
                 slots.receiver_device_id = None;
+                slots.receiver_device_name = None;
                 slots.receiver_caps = None;
                 if let Some(tx) = &slots.sender {
                     send_msg(
@@ -490,6 +507,7 @@ mod tests {
                 proto: PROTO_VERSION,
                 token: Some(server.token.clone()),
                 device_id: Some("early-tv".into()),
+                device_name: Some("TV Awal".into()),
                 caps: None,
             },
         )
@@ -506,6 +524,7 @@ mod tests {
                 proto: PROTO_VERSION,
                 token: None,
                 device_id: None,
+                device_name: None,
                 caps: None,
             },
         )
@@ -538,6 +557,7 @@ mod tests {
                 proto: PROTO_VERSION,
                 token: None,
                 device_id: None,
+                device_name: None,
                 caps: None,
             },
         )
@@ -554,6 +574,7 @@ mod tests {
                 proto: PROTO_VERSION,
                 token: Some("000000".to_string()),
                 device_id: None,
+                device_name: None,
                 caps: None,
             },
         )
@@ -576,6 +597,7 @@ mod tests {
                 proto: PROTO_VERSION,
                 token: Some(server.token.clone()),
                 device_id: Some("test-tv".into()),
+                device_name: Some("TV Test".into()),
                 caps: None,
             },
         )
@@ -601,6 +623,7 @@ mod tests {
                 proto: PROTO_VERSION,
                 token: Some(server.token.clone()),
                 device_id: Some("test-tv-2".into()),
+                device_name: Some("TV Test 2".into()),
                 caps: None,
             },
         )
@@ -706,6 +729,7 @@ mod tests {
                 proto: PROTO_VERSION,
                 token: None,
                 device_id: None,
+                device_name: None,
                 caps: None,
             },
         )
@@ -720,6 +744,7 @@ mod tests {
                 proto: PROTO_VERSION,
                 token: Some(server.token.clone()),
                 device_id: Some("tv-audio".into()),
+                device_name: Some("TV Audio".into()),
                 caps: Some(ReceiverCaps { audio: true }),
             },
         )
@@ -729,8 +754,13 @@ mod tests {
 
         let joined: ServerMsg = next_server_msg(&mut sender).await;
         match joined {
-            ServerMsg::ReceiverJoined { device_id, caps } => {
+            ServerMsg::ReceiverJoined {
+                device_id,
+                device_name,
+                caps,
+            } => {
                 assert_eq!(device_id.as_deref(), Some("tv-audio"));
+                assert_eq!(device_name.as_deref(), Some("TV Audio"));
                 assert_eq!(caps, Some(ReceiverCaps { audio: true }));
             }
             other => panic!("harus receiverJoined: {other:?}"),
@@ -783,6 +813,7 @@ mod tests {
                 proto: PROTO_VERSION,
                 token: None,
                 device_id: None,
+                device_name: None,
                 caps: None,
             },
         )
@@ -801,7 +832,9 @@ mod tests {
 
         let joined: ServerMsg = next_server_msg(&mut sender).await;
         match joined {
-            ServerMsg::ReceiverJoined { device_id, caps } => {
+            ServerMsg::ReceiverJoined {
+                device_id, caps, ..
+            } => {
                 assert_eq!(device_id.as_deref(), Some("old-tv"));
                 assert_eq!(caps, None, "receiver lama tidak punya caps");
             }

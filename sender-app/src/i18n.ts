@@ -28,7 +28,7 @@ function detectDefault(): Locale {
   const saved = localStorage.getItem(STORAGE_KEY);
   if (saved === "id" || saved === "en") return saved;
   const nav = (navigator.language || "id").toLowerCase();
-  return nav.startsWith("id") ? "id" : "en";
+  return nav.startsWith("en") ? "en" : "id";
 }
 
 /** Terjemahkan satu string (dynamic). Default ID = identitas. */

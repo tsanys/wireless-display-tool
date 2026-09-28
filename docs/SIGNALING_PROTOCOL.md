@@ -17,8 +17,8 @@ Kontrak signaling antara **sender app** (laptop, embed server) dan
 | `sender` | loopback saja (127.0.0.1/::1) | tanpa token | maks 1 |
 | `receiver` | LAN mana pun | **wajib** token pairing 6-digit | maks 1 aktif (MVP) |
 
-- Token 6-digit numeric; sender app mempersist token di app-data sehingga
-  restart **tidak** mengubah token (tampil di UI + QR `ip:port:token`).
+- Token 6-digit numeric dibuat ulang setiap sender app dibuka. Token tidak
+  dipersist, sehingga kode dari launch sebelumnya tidak dapat dipakai lagi.
 - Receiver kedua yang hello valid saat slot terisi → `error senderBusy`.
 - Semua pesan selain `hello` sebelum handshake → `error unexpected`.
 
@@ -26,7 +26,7 @@ Kontrak signaling antara **sender app** (laptop, embed server) dan
 
 ### `hello` — handshake
 ```json
-{"type":"hello","role":"receiver","proto":1,"token":"123456","deviceId":"tv-living","caps":{"audio":true}}
+{"type":"hello","role":"receiver","proto":1,"token":"123456","deviceId":"8e71…","deviceName":"TV Ruang Keluarga","caps":{"audio":true}}
 {"type":"hello","role":"sender","proto":1}
 ```
 | Field | Tipe | Wajib | Catatan |
@@ -34,7 +34,8 @@ Kontrak signaling antara **sender app** (laptop, embed server) dan
 | `role` | `"sender" \| "receiver"` | ya | |
 | `proto` | number | ya | selain 1 → `protoMismatch` |
 | `token` | string | receiver: ya; sender: tidak | 6 digit |
-| `deviceId` | string | tidak | label user-friendly TV |
+| `deviceId` | string | tidak | identity instalasi receiver yang stabil |
+| `deviceName` | string | tidak | nama perangkat yang dapat diubah user |
 | `caps` | object | tidak | kemampuan receiver; **absen = receiver lama** |
 
 `caps` (v1, aditif — tidak bump `proto`):
@@ -92,12 +93,13 @@ tipe tak dikenal dan mengabaikannya.
 
 ### `receiverJoined` — receiver baru masuk (ke sender)
 ```json
-{"type":"receiverJoined","deviceId":"tv-living","caps":{"audio":true}}
+{"type":"receiverJoined","deviceId":"8e71…","deviceName":"TV Ruang Keluarga","caps":{"audio":true}}
 ```
 Dikirim ke sender setiap receiver berhasil hello. Dipakai UI sender
 untuk menampilkan TV yang siap. Sender sebaiknya menunggu pesan ini
 sebelum mengirim `offer` (offer tanpa receiver aktif ditolak
-`unexpected`). `caps` diteruskan apa adanya dari hello (absen = lama).
+`unexpected`). `deviceName` dan `caps` diteruskan apa adanya dari hello;
+field yang absen menandakan receiver versi lama.
 
 ### `offer` / `answer` / `ice` / `sessionConfig` — relay ke lawan
 Format sama dengan versi client.
@@ -166,20 +168,22 @@ oleh kedua sisi.
 ## mDNS (discovery otomatis)
 
 - Service type: `_wdt._tcp.local.`
-- Instance name: `WDT <hostname>` (≤ 15 karakter, mis. `WDT MacBook-Pro`)
+- Instance name: `WDT <displayName>` (dinormalisasi agar valid untuk mDNS)
 - TXT record:
 
 | Key | Contoh | Arti |
 |---|---|---|
 | `proto` | `1` | versi protokol signaling |
 | `ver` | `0.1.0` | versi sender app |
+| `id` | `9b4f…` | identity instalasi sender yang stabil |
+| `name` | `Laptop Pandu` | nama sender yang dapat diubah user |
 
 - Port ada di record SRV; IP di record A/AAAA. Receiver Android memakai
   NSD API dengan bentuk service type **tanpa domain**: `_wdt._tcp`
   (`NsdManager.discoverServices("_wdt._tcp", PROTOCOL_DNS_SD)`); bentuk
   `_wdt._tcp.local.` adalah notasi DNS-SD penuh yang dipakai advertiser
   (`mdns-sd` di Rust). Keduanya merujuk service yang sama.
-- Token pairing **tidak** di-advertise di TXT record (hanya `proto`/`ver`)
+- Token pairing **tidak** di-advertise di TXT record
   supaya tidak bocor ke seluruh LAN; receiver tetap harus memasukkannya
   (dari layar sender atau QR).
 

@@ -316,7 +316,7 @@ sudah dikonfirmasi lewat pengujian nyata (device/jaringan fisik).
 - Profile encoder E2E = **H.264 Baseline**, fmtp SDP
   `profile-level-id=42e02a` (level 4.2, sah untuk ~1080p-class).
 - Reconnect: **Stop tidak memutus TV** (re-arm); receiver kedua menggantikan
-  yang lama (`bye replaced`); token pairing dipersist lintas restart.
+  yang lama (`bye replaced`); token pairing baru dibuat pada setiap launch.
 
 ---
 

@@ -33,6 +33,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
+import java.util.UUID
 
 /**
  * State UI receiver.
@@ -59,7 +60,12 @@ class MainActivity : Activity() {
         const val TAG = "WdtMain"
         const val SESSION_PANEL_TIMEOUT_MS = 4_000L
         const val LOW_LATENCY_PREF = "low_latency"
+        const val IDENTITY_PREFS = "receiver_identity"
+        const val IDENTITY_ID = "installation_id"
+        const val IDENTITY_NAME = "display_name"
     }
+
+    private data class ReceiverIdentity(val id: String, val name: String)
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private val uiHandler = android.os.Handler(android.os.Looper.getMainLooper())
@@ -83,7 +89,13 @@ class MainActivity : Activity() {
     private lateinit var chkLowLatency: CheckBox
     private lateinit var btnDisconnect: Button
     private lateinit var btnHideSession: Button
+    private lateinit var btnConnectSelected: Button
+    private lateinit var btnChangeSender: Button
+    private lateinit var btnSaveReceiverName: Button
     private lateinit var manualSection: View
+    private lateinit var pairingSection: View
+    private lateinit var selectedSenderText: TextView
+    private lateinit var receiverNameInput: EditText
     private lateinit var panelSetup: View
     private lateinit var sessionPanel: View
     private lateinit var videoRenderer: org.webrtc.SurfaceViewRenderer
@@ -96,6 +108,9 @@ class MainActivity : Activity() {
 
     private var state: UiState = UiState.SCANNING
     private var connectedSenderLabel: String? = null
+    private var selectedSender: SenderInfo? = null
+    private var discoveredSenders: List<SenderInfo> = emptyList()
+    private lateinit var receiverIdentity: ReceiverIdentity
     private var videoShown = false
     /** Status audio sesi (dari SessionConfig) untuk panel sesi. */
     private var audioActive = false
@@ -144,7 +159,13 @@ class MainActivity : Activity() {
         chkLowLatency = findViewById(R.id.chk_low_latency)
         btnDisconnect = findViewById(R.id.btn_disconnect)
         btnHideSession = findViewById(R.id.btn_hide_session)
+        btnConnectSelected = findViewById(R.id.btn_connect_selected)
+        btnChangeSender = findViewById(R.id.btn_change_sender)
+        btnSaveReceiverName = findViewById(R.id.btn_save_receiver_name)
         manualSection = findViewById(R.id.manual_section)
+        pairingSection = findViewById(R.id.pairing_section)
+        selectedSenderText = findViewById(R.id.selected_sender_text)
+        receiverNameInput = findViewById(R.id.receiver_name_input)
         panelSetup = findViewById(R.id.panel_setup)
         sessionPanel = findViewById(R.id.session_panel)
         videoRenderer = findViewById(R.id.video_renderer)
@@ -155,6 +176,8 @@ class MainActivity : Activity() {
         btnRetry.text = getString(R.string.btn_retry)
         chkLowLatency.text = getString(R.string.low_latency_label)
         audioRouteLabel = getString(R.string.audio_route_laptop)
+        receiverIdentity = loadReceiverIdentity()
+        receiverNameInput.setText(receiverIdentity.name)
 
         // Trial WebRTC hanya dapat diterapkan sebelum factory pertama dibuat.
         val prefs = getPreferences(Context.MODE_PRIVATE)
@@ -181,6 +204,9 @@ class MainActivity : Activity() {
         )
 
         btnRetry.setOnClickListener { backToScanning() }
+        btnConnectSelected.setOnClickListener { connectSelectedSender() }
+        btnChangeSender.setOnClickListener { clearSenderSelection(requestFocus = true) }
+        btnSaveReceiverName.setOnClickListener { saveReceiverName() }
         btnConnectManual.setOnClickListener { connectManual() }
         btnManualToggle.setOnClickListener {
             val opening = manualSection.visibility != View.VISIBLE
@@ -212,7 +238,7 @@ class MainActivity : Activity() {
         tokenInput.setOnEditorActionListener { _, actionId, _ ->
             if (actionId == EditorInfo.IME_ACTION_DONE) {
                 closeKeyboard(tokenInput)
-                (senderList.getChildAt(0) ?: btnRetry).requestFocus()
+                connectSelectedSender()
                 true
             } else {
                 false
@@ -230,7 +256,7 @@ class MainActivity : Activity() {
         }
         tokenInput.setOnKeyListener { _, keyCode, event ->
             if (event.action == KeyEvent.ACTION_DOWN && keyCode == KeyEvent.KEYCODE_DPAD_DOWN) {
-                (senderList.getChildAt(0) ?: btnRetry).requestFocus()
+                btnConnectSelected.requestFocus()
                 true
             } else {
                 false
@@ -239,10 +265,10 @@ class MainActivity : Activity() {
 
         setStatus(UiState.SCANNING, getString(R.string.discovery_searching))
         discoveryLabel.text = getString(R.string.discovery_searching)
-        tokenInput.post {
+        senderList.post {
             val keyboard = getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
             keyboard.hideSoftInputFromWindow(tokenInput.windowToken, 0)
-            tokenInput.requestFocus()
+            btnRetry.requestFocus()
         }
     }
 
@@ -268,7 +294,7 @@ class MainActivity : Activity() {
         if (event.action == KeyEvent.ACTION_DOWN && event.keyCode == KeyEvent.KEYCODE_DPAD_DOWN) {
             when (currentFocus) {
                 tokenInput -> {
-                    (senderList.getChildAt(0) ?: btnRetry).requestFocus()
+                    btnConnectSelected.requestFocus()
                     return true
                 }
                 manualInput -> {
@@ -296,6 +322,8 @@ class MainActivity : Activity() {
     override fun onBackPressed() {
         if (sessionPanel.visibility == View.VISIBLE && panelSetup.visibility != View.VISIBLE) {
             hidePlaybackPanel()
+        } else if (pairingSection.visibility == View.VISIBLE && signaling == null) {
+            clearSenderSelection(requestFocus = true)
         } else if (peer != null || signaling != null || state == UiState.CONNECTED || state == UiState.CONNECTING) {
             confirmDisconnect()
         } else {
@@ -322,17 +350,28 @@ class MainActivity : Activity() {
     }
 
     private fun renderSenders(senders: List<SenderInfo>) {
-        if (state != UiState.SCANNING) return
+        if (state != UiState.SCANNING && state != UiState.ERROR) return
+        discoveredSenders = senders.sortedBy { it.displayName.lowercase() }
+        val selectedKey = selectedSender?.stableKey()
+        if (selectedKey != null) {
+            val refreshed = discoveredSenders.firstOrNull { it.stableKey() == selectedKey }
+            if (refreshed == null) {
+                val lostName = selectedSender?.displayName.orEmpty()
+                clearSenderSelection(requestFocus = false)
+                discoveryLabel.text = getString(R.string.selected_sender_lost_fmt, lostName)
+            } else {
+                selectedSender = refreshed
+                return
+            }
+        }
         senderList.removeAllViews()
-        if (senders.isEmpty()) {
+        if (discoveredSenders.isEmpty()) {
             discoveryLabel.text = getString(R.string.discovery_empty)
             return
         }
         discoveryLabel.text = getString(R.string.discovery_found)
-        for (sender in senders) {
-            val label = sender.instanceName.removePrefix("WDT ").ifBlank {
-                getString(R.string.audio_route_laptop)
-            }
+        for (sender in discoveredSenders) {
+            val label = sender.displayName
             val btn = Button(this).apply {
                 text = getString(R.string.sender_available_fmt, label)
                 isAllCaps = false
@@ -348,31 +387,52 @@ class MainActivity : Activity() {
                     LinearLayout.LayoutParams.MATCH_PARENT,
                     LinearLayout.LayoutParams.WRAP_CONTENT,
                 ).apply { bottomMargin = dp(10) }
-                setOnClickListener {
-                    val token = promptToken(sender.instanceName) ?: return@setOnClickListener
-                    connectTo(sender.host, sender.port, token, label)
-                }
+                setOnClickListener { selectSender(sender) }
             }
             senderList.addView(btn)
         }
+        senderList.getChildAt(0)?.requestFocus()
     }
 
-    /**
-     * Token pairing untuk sender hasil discovery.
-     *
-     * Sender hasil discovery hanya memerlukan token 6 digit. Alamat lengkap
-     * sengaja berada di fallback terpisah agar dua tugas ini tidak tercampur.
-     */
-    private fun promptToken(senderName: String): String? {
-        val raw = tokenInput.text?.toString()?.trim().orEmpty()
-        ManualPairing.parseTokenOnly(raw)?.let { return it }
-        Toast.makeText(
-            this,
-            getString(R.string.pairing_token_prompt_fmt, senderName),
-            Toast.LENGTH_LONG,
-        ).show()
+    private fun SenderInfo.stableKey(): String = deviceId ?: instanceName
+
+    private fun selectSender(sender: SenderInfo) {
+        selectedSender = sender
+        senderList.visibility = View.GONE
+        btnRetry.visibility = View.GONE
+        pairingSection.visibility = View.VISIBLE
+        selectedSenderText.text = getString(R.string.selected_sender_fmt, sender.displayName)
+        discoveryLabel.text = getString(R.string.token_hint)
+        tokenInput.text?.clear()
         tokenInput.requestFocus()
-        return null
+    }
+
+    private fun clearSenderSelection(requestFocus: Boolean) {
+        selectedSender = null
+        pairingSection.visibility = View.GONE
+        senderList.visibility = View.VISIBLE
+        btnRetry.visibility = View.VISIBLE
+        tokenInput.text?.clear()
+        if (discoveredSenders.isEmpty()) {
+            discoveryLabel.text = getString(R.string.discovery_empty)
+        } else {
+            discoveryLabel.text = getString(R.string.discovery_found)
+        }
+        if (requestFocus) (senderList.getChildAt(0) ?: btnRetry).requestFocus()
+    }
+
+    private fun connectSelectedSender() {
+        val sender = selectedSender ?: run {
+            clearSenderSelection(requestFocus = true)
+            return
+        }
+        val token = ManualPairing.parseTokenOnly(tokenInput.text?.toString().orEmpty())
+        if (token == null) {
+            discoveryLabel.text = getString(R.string.pairing_token_prompt_fmt, sender.displayName)
+            tokenInput.requestFocus()
+            return
+        }
+        connectTo(sender.host, sender.port, token, sender.displayName)
     }
 
     private fun connectManual() {
@@ -422,7 +482,15 @@ class MainActivity : Activity() {
             onSessionConfig = { audio -> onSessionConfig(audio) },
             onError = { code, message -> onSignalingError(code, message) },
             onClosed = { reason -> onRemoteClosed(reason) },
-        ).also { it.connect(host, port, token, deviceLabel()) }
+        ).also {
+            it.connect(
+                host = host,
+                port = port,
+                token = token,
+                deviceId = receiverIdentity.id,
+                deviceName = receiverIdentity.name,
+            )
+        }
     }
 
     /// Bangun ReceiverPeerConnection baru dengan callback lengkap.
@@ -590,12 +658,22 @@ class MainActivity : Activity() {
         panelSetup.visibility = View.VISIBLE
         sessionPanel.visibility = View.GONE
         discoveryLabel.text = getString(R.string.discovery_retry_hint)
-        btnRetry.requestFocus()
+        if (selectedSender != null) {
+            pairingSection.visibility = View.VISIBLE
+            senderList.visibility = View.GONE
+            btnRetry.visibility = View.GONE
+            discovery?.start()
+            tokenInput.selectAll()
+            tokenInput.requestFocus()
+        } else {
+            btnRetry.requestFocus()
+        }
     }
 
     private fun backToScanning() {
         teardownSession(closeSignaling = true)
         connectedSenderLabel = null
+        clearSenderSelection(requestFocus = false)
         videoRenderer.visibility = View.VISIBLE
         panelSetup.visibility = View.VISIBLE
         sessionPanel.visibility = View.GONE
@@ -667,9 +745,34 @@ class MainActivity : Activity() {
         Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
     }
 
-    private fun deviceLabel(): String {
-        val model = Build.MODEL ?: "android-tv"
-        return getString(R.string.device_label_fmt, model)
+    private fun loadReceiverIdentity(): ReceiverIdentity {
+        val prefs = getSharedPreferences(IDENTITY_PREFS, Context.MODE_PRIVATE)
+        val id = prefs.getString(IDENTITY_ID, null)?.takeIf { it.isNotBlank() }
+            ?: UUID.randomUUID().toString()
+        val defaultName = getString(R.string.device_label_fmt, Build.MODEL ?: "Android TV")
+        val name = prefs.getString(IDENTITY_NAME, null)?.trim()?.takeIf { it.length >= 2 }
+            ?: defaultName.take(32)
+        prefs.edit().putString(IDENTITY_ID, id).putString(IDENTITY_NAME, name).apply()
+        return ReceiverIdentity(id = id, name = name)
+    }
+
+    private fun saveReceiverName() {
+        val name = receiverNameInput.text?.toString().orEmpty()
+            .trim()
+            .replace(Regex("\\s+"), " ")
+            .take(32)
+        if (name.length < 2) {
+            showTransientError(getString(R.string.receiver_name_invalid))
+            receiverNameInput.requestFocus()
+            return
+        }
+        receiverIdentity = receiverIdentity.copy(name = name)
+        getSharedPreferences(IDENTITY_PREFS, Context.MODE_PRIVATE)
+            .edit()
+            .putString(IDENTITY_NAME, name)
+            .apply()
+        showTransientError(getString(R.string.receiver_name_saved))
+        btnSaveReceiverName.requestFocus()
     }
 
     private fun dp(value: Int): Int = (value * resources.displayMetrics.density).toInt()
@@ -697,7 +800,7 @@ class MainActivity : Activity() {
         }
         statusText.text = getString(R.string.status_fmt, friendly)
         setupStatusText.text = friendly
-        sessionBadge.text = if (paused) "PAUSED" else "LIVE"
+        sessionBadge.text = if (paused) getString(R.string.status_paused) else friendly
         val color = when (newState) {
             UiState.CONNECTED -> 0xFF52D3C6.toInt()
             UiState.ERROR -> 0xFFFF7E79.toInt()

@@ -78,6 +78,7 @@ internal data class HelloOut(
     @SerializedName("proto") val proto: Int = Protocol.VERSION,
     @SerializedName("token") val token: String,
     @SerializedName("deviceId") val deviceId: String?,
+    @SerializedName("deviceName") val deviceName: String?,
     @SerializedName("caps") val caps: ReceiverCapsOut = ReceiverCapsOut(),
 )
 

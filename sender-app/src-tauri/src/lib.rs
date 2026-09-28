@@ -8,6 +8,7 @@ pub fn run() {
         .manage(sender::build_state())
         .invoke_handler(tauri::generate_handler![
             sender::get_pairing_info,
+            sender::set_device_name,
             sender::get_receivers,
             sender::get_mirror_status,
             sender::get_capabilities,

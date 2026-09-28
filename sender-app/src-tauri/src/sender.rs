@@ -6,6 +6,7 @@
 //! pesan mengikuti `docs/SIGNALING_PROTOCOL.md` (via wdt-core).
 
 use std::net::{IpAddr, SocketAddr};
+use std::path::PathBuf;
 
 use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Emitter, Manager};
@@ -41,6 +42,15 @@ pub struct MirrorStatus {
 pub struct ReceiverView {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub device_id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub device_name: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DeviceIdentity {
+    pub id: String,
+    pub display_name: String,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -51,6 +61,8 @@ pub struct PairingInfo {
     pub token: String,
     pub pairing_string: String,
     pub mdns_instance: String,
+    pub device_id: String,
+    pub display_name: String,
     pub server_running: bool,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub server_error: Option<String>,
@@ -301,6 +313,7 @@ struct Inner {
     server_addr: Option<SocketAddr>,
     token: Option<String>,
     mdns_instance: Option<String>,
+    identity: Option<DeviceIdentity>,
     server_error: Option<String>,
     session_cmds: Option<mpsc::UnboundedSender<SessionCmd>>,
     receiver: Option<ReceiverView>,
@@ -328,6 +341,7 @@ impl AppState {
                 server_addr: None,
                 token: None,
                 mdns_instance: None,
+                identity: None,
                 server_error: None,
                 session_cmds: None,
                 receiver: None,
@@ -349,54 +363,49 @@ impl AppState {
 /// Dipanggil sekali dari `setup`: jalankan server + advertise + sesi loopback.
 pub async fn init_sender(app: AppHandle) -> Result<(), String> {
     let state: tauri::State<'_, AppState> = app.state();
+    let identity = load_or_create_identity(&app)?;
 
-    // 1. Signaling server di semua interface — token dipersist di app-data
-    //    agar restart tidak mengubah token (TV tidak perlu ketik ulang).
-    let token_path = app
+    // 1. Kode pairing dibuat baru pada setiap launch. File token permanen
+    //    dari versi lama dibuang agar kode yang pernah dipakai tidak menjadi
+    //    kredensial LAN jangka panjang.
+    let legacy_token_path = app
         .path()
         .app_data_dir()
         .ok()
         .map(|d| d.join("pairing-token"));
-    let persisted = token_path
-        .as_ref()
-        .and_then(|p| std::fs::read_to_string(p).ok())
-        .map(|t| t.trim().to_string())
-        .filter(|t| t.len() == 6 && t.chars().all(|c| c.is_ascii_digit()));
+    if let Some(path) = legacy_token_path {
+        let _ = std::fs::remove_file(path);
+    }
 
-    let server =
-        match server::spawn_with_token(SocketAddr::from(([0, 0, 0, 0], DEFAULT_PORT)), persisted)
-            .await
-        {
-            Ok(s) => s,
-            Err(e) => {
-                let msg = format!("bind 0.0.0.0:{DEFAULT_PORT} gagal: {e}");
-                state.inner.lock().await.server_error = Some(msg.clone());
-                app.emit(
-                    "server-status",
-                    serde_json::json!({"running": false, "error": msg}),
-                )
-                .map_err(|e| e.to_string())?;
-                return Err(msg);
-            }
-        };
+    let server = match server::spawn(SocketAddr::from(([0, 0, 0, 0], DEFAULT_PORT))).await {
+        Ok(s) => s,
+        Err(e) => {
+            let msg = format!("bind 0.0.0.0:{DEFAULT_PORT} gagal: {e}");
+            state.inner.lock().await.server_error = Some(msg.clone());
+            app.emit(
+                "server-status",
+                serde_json::json!({"running": false, "error": msg}),
+            )
+            .map_err(|e| e.to_string())?;
+            return Err(msg);
+        }
+    };
     let port = server.local_addr.port();
     let token = server.token.clone();
-    // Simpan token bila berubah agar restart berikutnya memakai token sama.
-    if let Some(path) = &token_path {
-        if std::fs::read_to_string(path).ok().as_deref() != Some(token.as_str()) {
-            if let Some(dir) = path.parent() {
-                let _ = std::fs::create_dir_all(dir);
-            }
-            let _ = std::fs::write(path, &token);
-        }
-    }
 
     // 2. Advertise mDNS.
     let ip = local_ip();
     let hostname = hostname();
-    let instance = format!("WDT {}", short_host(&hostname));
-    let advert = MdnsAdvert::advertise(&instance, &format!("{hostname}.local."), &ip, port)
-        .map_err(|e| format!("mDNS advertise gagal: {e}"))?;
+    let instance = mdns_instance_name(&identity);
+    let advert = MdnsAdvert::advertise_device(
+        &instance,
+        &format!("{hostname}.local."),
+        &ip,
+        port,
+        &identity.id,
+        &identity.display_name,
+    )
+    .map_err(|e| format!("mDNS advertise gagal: {e}"))?;
 
     // 3. Sesi sender via loopback.
     let url = format!("ws://127.0.0.1:{port}/ws");
@@ -410,6 +419,7 @@ pub async fn init_sender(app: AppHandle) -> Result<(), String> {
         inner.server_addr = Some(server.local_addr);
         inner.token = Some(token.clone());
         inner.mdns_instance = Some(instance.clone());
+        inner.identity = Some(identity.clone());
         inner.session_cmds = Some(cmds);
         inner._advert = Some(advert);
         inner._server = Some(server);
@@ -424,6 +434,8 @@ pub async fn init_sender(app: AppHandle) -> Result<(), String> {
             "token": token,
             "pairingString": format!("{ip}:{port}:{token}"),
             "mdnsInstance": instance,
+            "deviceId": identity.id,
+            "displayName": identity.display_name,
         }),
     )
     .map_err(|e| e.to_string())?;
@@ -443,16 +455,22 @@ async fn handle_session_event(app: &AppHandle, ev: SessionEvent) {
     let state: tauri::State<'_, AppState> = app.state();
     match ev {
         SessionEvent::HelloOk { .. } => {}
-        SessionEvent::ReceiverJoined { device_id, caps } => {
+        SessionEvent::ReceiverJoined {
+            device_id,
+            device_name,
+            caps,
+        } => {
             let mut inner = state.inner.lock().await;
             inner.receiver = Some(ReceiverView {
                 device_id: device_id.clone(),
+                device_name: device_name.clone(),
             });
             inner.receiver_caps = caps;
             let _ = app.emit(
                 "receiver-joined",
                 serde_json::json!({
                     "deviceId": device_id,
+                    "deviceName": device_name,
                     "audioSupported": caps.map(|c| c.audio).unwrap_or(false),
                 }),
             );
@@ -619,8 +637,13 @@ async fn set_mirror(app: &AppHandle, state_: MirrorState, message: Option<String
 #[tauri::command]
 pub async fn get_pairing_info(state: tauri::State<'_, AppState>) -> Result<PairingInfo, String> {
     let inner = state.inner.lock().await;
-    match (&inner.server_addr, &inner.token, &inner.mdns_instance) {
-        (Some(addr), Some(token), Some(instance)) => {
+    match (
+        &inner.server_addr,
+        &inner.token,
+        &inner.mdns_instance,
+        &inner.identity,
+    ) {
+        (Some(addr), Some(token), Some(instance), Some(identity)) => {
             let ip = local_ip();
             let port = addr.port();
             Ok(PairingInfo {
@@ -629,6 +652,8 @@ pub async fn get_pairing_info(state: tauri::State<'_, AppState>) -> Result<Pairi
                 token: token.clone(),
                 pairing_string: format!("{ip}:{port}:{token}"),
                 mdns_instance: instance.clone(),
+                device_id: identity.id.clone(),
+                display_name: identity.display_name.clone(),
                 server_running: true,
                 server_error: None,
             })
@@ -639,10 +664,91 @@ pub async fn get_pairing_info(state: tauri::State<'_, AppState>) -> Result<Pairi
             token: String::new(),
             pairing_string: String::new(),
             mdns_instance: String::new(),
+            device_id: String::new(),
+            display_name: String::new(),
             server_running: false,
             server_error: inner.server_error.clone(),
         }),
     }
+}
+
+/// Ganti nama ramah sender tanpa mengganti identity instalasi.
+#[tauri::command]
+pub async fn set_device_name(app: AppHandle, name: String) -> Result<DeviceIdentity, String> {
+    let name = normalize_device_name(&name)?;
+    let state: tauri::State<'_, AppState> = app.state();
+    let (old_identity, addr, old_advert) = {
+        let mut inner = state.inner.lock().await;
+        let identity = inner
+            .identity
+            .clone()
+            .ok_or_else(|| "Identity sender belum siap".to_string())?;
+        let addr = inner
+            .server_addr
+            .ok_or_else(|| "Layanan koneksi belum siap".to_string())?;
+        (identity, addr, inner._advert.take())
+    };
+
+    let next = DeviceIdentity {
+        id: old_identity.id.clone(),
+        display_name: name,
+    };
+    // Persist dulu. Bila disk gagal, iklan lama tetap hidup dan identity
+    // runtime tidak berubah.
+    save_identity(&app, &next)?;
+
+    if let Some(advert) = old_advert {
+        advert.stop();
+    }
+
+    let ip = local_ip();
+    let host = hostname();
+    let instance = mdns_instance_name(&next);
+    let advert = match MdnsAdvert::advertise_device(
+        &instance,
+        &format!("{host}.local."),
+        &ip,
+        addr.port(),
+        &next.id,
+        &next.display_name,
+    ) {
+        Ok(advert) => advert,
+        Err(error) => {
+            // Kembalikan file dan iklan lama supaya perubahan nama bersifat
+            // atomik dari sudut pandang user.
+            let _ = save_identity(&app, &old_identity);
+            let fallback_instance = mdns_instance_name(&old_identity);
+            let fallback = MdnsAdvert::advertise_device(
+                &fallback_instance,
+                &format!("{host}.local."),
+                &ip,
+                addr.port(),
+                &old_identity.id,
+                &old_identity.display_name,
+            )
+            .ok();
+            let mut inner = state.inner.lock().await;
+            inner._advert = fallback;
+            inner.mdns_instance = Some(fallback_instance);
+            return Err(format!("Nama perangkat tidak dapat diterapkan: {error}"));
+        }
+    };
+
+    {
+        let mut inner = state.inner.lock().await;
+        inner.identity = Some(next.clone());
+        inner.mdns_instance = Some(instance.clone());
+        inner._advert = Some(advert);
+    }
+    let _ = app.emit(
+        "identity-changed",
+        serde_json::json!({
+            "deviceId": next.id,
+            "displayName": next.display_name,
+            "mdnsInstance": instance,
+        }),
+    );
+    Ok(next)
 }
 
 #[tauri::command]
@@ -1000,6 +1106,63 @@ fn short_host(h: &str) -> String {
     h.split('.').next().unwrap_or(h).chars().take(11).collect()
 }
 
+fn identity_path(app: &AppHandle) -> Result<PathBuf, String> {
+    app.path()
+        .app_data_dir()
+        .map(|dir| dir.join("device-identity.json"))
+        .map_err(|e| format!("Direktori data aplikasi tidak tersedia: {e}"))
+}
+
+fn load_or_create_identity(app: &AppHandle) -> Result<DeviceIdentity, String> {
+    let path = identity_path(app)?;
+    if let Ok(raw) = std::fs::read_to_string(&path) {
+        if let Ok(identity) = serde_json::from_str::<DeviceIdentity>(&raw) {
+            if !identity.id.trim().is_empty() && !identity.display_name.trim().is_empty() {
+                return Ok(identity);
+            }
+        }
+    }
+
+    let id = format!("{:016x}{:016x}", fastrand::u64(..), fastrand::u64(..));
+    let host = short_host(&hostname());
+    let fallback = format!("Laptop {}", &id[id.len() - 4..].to_uppercase());
+    let display_name = normalize_device_name(&host).unwrap_or(fallback);
+    let identity = DeviceIdentity { id, display_name };
+    save_identity(app, &identity)?;
+    Ok(identity)
+}
+
+fn save_identity(app: &AppHandle, identity: &DeviceIdentity) -> Result<(), String> {
+    let path = identity_path(app)?;
+    if let Some(parent) = path.parent() {
+        std::fs::create_dir_all(parent)
+            .map_err(|e| format!("Gagal membuat direktori data: {e}"))?;
+    }
+    let json = serde_json::to_string_pretty(identity).map_err(|e| e.to_string())?;
+    std::fs::write(path, json).map_err(|e| format!("Gagal menyimpan identity: {e}"))
+}
+
+fn normalize_device_name(input: &str) -> Result<String, String> {
+    let normalized = input.split_whitespace().collect::<Vec<_>>().join(" ");
+    let normalized: String = normalized
+        .chars()
+        .filter(|c| !c.is_control())
+        .take(32)
+        .collect();
+    if normalized.chars().count() < 2 {
+        return Err("Nama perangkat minimal 2 karakter".to_string());
+    }
+    Ok(normalized)
+}
+
+fn mdns_instance_name(identity: &DeviceIdentity) -> String {
+    let mut instance = format!("WDT {}", identity.display_name);
+    while instance.len() > 63 {
+        instance.pop();
+    }
+    instance.trim_end().to_string()
+}
+
 pub fn build_state() -> AppState {
     AppState::new()
 }
@@ -1011,6 +1174,7 @@ mod tests {
     fn receiver() -> ReceiverView {
         ReceiverView {
             device_id: Some("tv-keluarga".to_string()),
+            device_name: Some("TV Keluarga".to_string()),
         }
     }
 
@@ -1373,6 +1537,20 @@ mod tests {
         );
         assert!(ui.validate().is_ok());
         assert!(VideoSettingsUi::default().validate().is_ok());
+    }
+
+    #[test]
+    fn device_name_is_normalized_and_mdns_safe() {
+        assert_eq!(
+            normalize_device_name("  Laptop   Pandu  ").unwrap(),
+            "Laptop Pandu"
+        );
+        assert!(normalize_device_name("x").is_err());
+        let identity = DeviceIdentity {
+            id: "stable-id".to_string(),
+            display_name: "📺".repeat(32),
+        };
+        assert!(mdns_instance_name(&identity).len() <= 63);
     }
 
     /// Bundel dapat ditulis ke berkas dan dibaca kembali (validasi I/O dasar).

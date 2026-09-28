@@ -153,6 +153,7 @@ pub enum SessionEvent {
     /// Receiver baru terhubung (untuk daftar TV di UI).
     ReceiverJoined {
         device_id: Option<String>,
+        device_name: Option<String>,
         /// Kemampuan receiver (None = receiver lama tanpa audio).
         caps: Option<super::protocol::ReceiverCaps>,
     },
@@ -233,6 +234,7 @@ pub async fn spawn_sender_session(
             proto: PROTO_VERSION,
             token: None,
             device_id: None,
+            device_name: None,
             caps: None,
         },
     )
@@ -449,9 +451,13 @@ async fn drive(
                             Err(_) => continue,
                         };
                         match parsed {
-                            ServerMsg::ReceiverJoined { device_id, caps } => {
+                            ServerMsg::ReceiverJoined { device_id, device_name, caps } => {
                                 receiver_caps = caps;
-                                let _ = events.send(SessionEvent::ReceiverJoined { device_id, caps });
+                                let _ = events.send(SessionEvent::ReceiverJoined {
+                                    device_id,
+                                    device_name,
+                                    caps,
+                                });
                             }
                             ServerMsg::Answer { sdp } => {
                                 if let Some(p) = peer.as_ref() {

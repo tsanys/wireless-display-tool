@@ -246,10 +246,10 @@ disarankan); TV dan laptop sender di **satu LAN** (WiFi atau Ethernet).
 
 1. Jalankan sender app di laptop (lihat section T4) — catat **token
    6-digit** di UI sender.
-2. Buka WDT Receiver di TV. Daftar sender muncul otomatis via mDNS
-   (nama instance `WDT <hostname>`).
-3. Ketik token 6-digit di field manual (token sengaja **tidak**
-   di-advertise lewat mDNS), lalu pilih sender → `Connect`.
+2. Buka WDT Receiver di TV. Daftar sender muncul otomatis via mDNS dengan
+   nama perangkat yang tersimpan di masing-masing instalasi sender.
+3. Pilih sender yang dituju, lalu masukkan token 6-digit milik sender itu
+   (token sengaja **tidak** di-advertise lewat mDNS) dan pilih `Hubungkan`.
    Bila mDNS diblokir, ketik `ip:port:token` (mis.
    `192.168.1.5:8420:123456`) lalu `Connect`.
 4. Saat user menekan **Start Mirroring** di sender, status berubah

@@ -11,9 +11,11 @@ interface PairingInfo {
   mdnsInstance: string;
   serverRunning: boolean;
   serverError?: string;
+  deviceId: string;
+  displayName: string;
 }
 
-interface ReceiverView { deviceId?: string }
+interface ReceiverView { deviceId?: string; deviceName?: string }
 interface MirrorStatus {
   state: "idle" | "offering" | "connecting" | "connected" | "error";
   message?: string;
@@ -109,6 +111,11 @@ function humanizeDeviceId(deviceId?: string): string {
     .replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
 
+function receiverName(deviceId?: string): string {
+  const receiver = receivers.find((candidate) => candidate.deviceId === deviceId);
+  return receiver?.deviceName?.trim() || humanizeDeviceId(deviceId);
+}
+
 function selectedDisplay(): DisplayInfo | undefined {
   return capabilities?.displays.find((display) => display.id === selectedDisplayId);
 }
@@ -131,13 +138,13 @@ function sessionCopy(): { kicker: string; title: string; description: string } {
     return {
       kicker: t("Koneksi aktif"),
       title: t("Layar sedang dibagikan"),
-      description: tf("{tv} menerima tampilan dari laptop ini.", { tv: humanizeDeviceId(selectedReceiver) }),
+      description: tf("{tv} menerima tampilan dari laptop ini.", { tv: receiverName(selectedReceiver) }),
     };
   }
   if (busyStates.has(mirrorStatus.state)) {
     return {
       kicker: mirrorStatus.state === "offering" ? t("Menyiapkan sesi") : t("Hampir selesai"),
-      title: tf("Menghubungkan ke {tv}…", { tv: humanizeDeviceId(selectedReceiver) }),
+      title: tf("Menghubungkan ke {tv}…", { tv: receiverName(selectedReceiver) }),
       description: t("Biarkan WDT Receiver tetap terbuka di TV."),
     };
   }
@@ -236,7 +243,7 @@ function renderReceivers(): void {
     button.setAttribute("aria-pressed", String(selectedReceiver === id));
     button.innerHTML = `
       <span class="receiver-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="14" rx="2"/><path d="M9 21h6M12 18v3"/></svg></span>
-      <span><strong>${humanizeDeviceId(id)}</strong><small>${t("Terhubung dan siap")}</small></span>
+      <span><strong>${receiver.deviceName?.trim() || humanizeDeviceId(id)}</strong><small>${t("Terhubung dan siap")}</small></span>
       <span class="selected-check" aria-hidden="true">✓</span>`;
     button.onclick = () => {
       selectedReceiver = id;
@@ -317,8 +324,9 @@ function renderSession(): void {
   $("session-title").textContent = copy.title;
   $("session-description").textContent = copy.description;
   document.body.dataset.sessionState = mirrorStatus.state;
+  document.body.dataset.hasReceiver = String(Boolean(selectedReceiver));
 
-  const tvName = selectedReceiver ? humanizeDeviceId(selectedReceiver) : t("Belum dipilih");
+  const tvName = selectedReceiver ? receiverName(selectedReceiver) : t("Belum dipilih");
   $("tv-device-label").textContent = selectedReceiver ? tvName : "TV tujuan";
   $("tv-screen-label").textContent = mirrorStatus.state === "connected"
     ? t("Terhubung")
@@ -411,7 +419,7 @@ async function switchAudioRoute(next: AudioRoute, previous: AudioRoute): Promise
 function renderDiagnostics(): void {
   $("diagnostic-server").textContent = pairingInfo?.serverRunning ? t("Aktif") : t("Tidak aktif");
   $("diagnostic-address").textContent = pairingInfo?.serverRunning ? `${pairingInfo.ip}:${pairingInfo.port}` : "—";
-  $("diagnostic-tv").textContent = selectedReceiver ? humanizeDeviceId(selectedReceiver) : t("Belum terhubung");
+  $("diagnostic-tv").textContent = selectedReceiver ? receiverName(selectedReceiver) : t("Belum terhubung");
   $("diagnostic-session").textContent = mirrorStatus.state;
   $("diagnostic-pipeline").textContent = pipelineInfo
     ? `${pipelineInfo.width}×${pipelineInfo.height}@${pipelineInfo.fps} · PT ${pipelineInfo.payloadType}`
@@ -500,6 +508,8 @@ async function refreshAll(): Promise<void> {
       mdnsInstance: "WDT Laptop Pandu",
       serverRunning: mock !== "server-error",
       serverError: mock === "server-error" ? "Port koneksi sedang dipakai aplikasi lain" : undefined,
+      deviceId: "sender-8472",
+      displayName: "Laptop Pandu",
     };
     const mockDisplays: DisplayInfo[] = [
       { id: "mock:built-in", name: "Layar MacBook", isPrimary: true, width: 2560, height: 1600 },
@@ -513,7 +523,10 @@ async function refreshAll(): Promise<void> {
         : { available: true, reason: undefined },
       receiverAudio: mock !== "no-audio",
     };
-    receivers = mock === "empty" || mock === "server-error" ? [] : [{ deviceId: "tv-ruang-keluarga" }];
+    receivers = mock === "empty" || mock === "server-error" ? [] : [
+      { deviceId: "tv-ruang-keluarga", deviceName: "TV Ruang Keluarga" },
+      { deviceId: "tv-studio", deviceName: "TV Studio" },
+    ];
     mirrorStatus = mock === "connected"
       ? { state: "connected" }
       : mock === "connecting"
@@ -527,6 +540,7 @@ async function refreshAll(): Promise<void> {
     }
     if (!selectedReceiver && receivers.length > 0) selectedReceiver = receivers[0].deviceId ?? "";
     restoreSettings();
+    ($("device-name-input") as HTMLInputElement).value = pairingInfo.displayName;
     renderAll();
     await renderPairing();
     return;
@@ -541,6 +555,7 @@ async function refreshAll(): Promise<void> {
   pairingInfo = pairingResult.status === "fulfilled" ? pairingResult.value : {
     ip: "", port: 0, token: "", pairingString: "", mdnsInstance: "", serverRunning: false,
     serverError: String(pairingResult.reason),
+    deviceId: "", displayName: "",
   };
   if (receiverResult.status === "fulfilled") receivers = receiverResult.value;
   if (statusResult.status === "fulfilled") mirrorStatus = statusResult.value;
@@ -550,6 +565,9 @@ async function refreshAll(): Promise<void> {
   if (!selectedReceiver && receivers.length > 0) {
     selectedReceiver = receivers[0].deviceId ?? "";
     restoreSettings();
+  }
+  if (pairingInfo.displayName) {
+    ($("device-name-input") as HTMLInputElement).value = pairingInfo.displayName;
   }
   renderAll();
   await renderPairing();
@@ -674,6 +692,27 @@ function bindControls(): void {
     $("btn-copy-pairing").textContent = t("Detail tersalin");
     window.setTimeout(() => { $("btn-copy-pairing").textContent = t("Salin detail koneksi"); }, 1800);
   };
+  $("btn-save-device-name").onclick = async () => {
+    const input = $("device-name-input") as HTMLInputElement;
+    const note = $("device-name-note");
+    const name = input.value.trim();
+    if (name.length < 2) {
+      note.textContent = "Gunakan nama antara 2–32 karakter.";
+      return;
+    }
+    if (!isTauri) {
+      if (pairingInfo) pairingInfo.displayName = name;
+      note.textContent = "Nama disimpan untuk pratinjau ini.";
+      return;
+    }
+    try {
+      await invoke("set_device_name", { name });
+      note.textContent = "Nama tersimpan. TV di jaringan akan melihat nama baru ini.";
+      await refreshAll();
+    } catch (error) {
+      note.textContent = `Nama belum tersimpan: ${String(error)}`;
+    }
+  };
   document.querySelectorAll<HTMLDialogElement>("dialog").forEach((dialog) => {
     dialog.addEventListener("click", (event) => { if (event.target === dialog) dialog.close(); });
   });
@@ -708,6 +747,7 @@ async function bindEvents(): Promise<void> {
     renderAll();
   });
   await listen("server-status", () => void refreshAll());
+  await listen("identity-changed", () => void refreshAll());
 }
 
 window.addEventListener("DOMContentLoaded", async () => {

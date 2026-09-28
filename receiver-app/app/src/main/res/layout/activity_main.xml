@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Receiver TV: setup D-pad-first, safe area 48dp, video fullscreen. -->
+<!-- TV-first receiver: pilih laptop, lalu masukkan kode khusus laptop itu. -->
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#050A11"
+    android:background="#081214"
     android:keepScreenOn="true">
 
     <org.webrtc.SurfaceViewRenderer
@@ -17,10 +17,10 @@
         android:layout_height="match_parent"
         android:background="@drawable/bg_receiver"
         android:orientation="vertical"
-        android:paddingStart="48dp"
-        android:paddingTop="40dp"
-        android:paddingEnd="48dp"
-        android:paddingBottom="40dp">
+        android:paddingStart="56dp"
+        android:paddingTop="42dp"
+        android:paddingEnd="56dp"
+        android:paddingBottom="42dp">
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -29,22 +29,22 @@
             android:orientation="horizontal">
 
             <TextView
-                android:layout_width="44dp"
-                android:layout_height="44dp"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
                 android:background="@drawable/bg_brand_mark"
                 android:gravity="center"
                 android:text="W"
-                android:textColor="#06111C"
-                android:textSize="20sp"
+                android:textColor="#081214"
+                android:textSize="21sp"
                 android:textStyle="bold" />
 
             <TextView
                 android:id="@+id/title_text"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="14dp"
-                android:textColor="#EAF2F8"
-                android:textSize="19sp"
+                android:layout_marginStart="16dp"
+                android:textColor="#F1F4F2"
+                android:textSize="20sp"
                 android:textStyle="bold" />
 
             <Space
@@ -56,13 +56,13 @@
                 android:id="@+id/setup_status_text"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:minHeight="40dp"
+                android:minHeight="44dp"
                 android:background="@drawable/bg_status_chip"
                 android:gravity="center"
                 android:paddingStart="18dp"
                 android:paddingEnd="18dp"
-                android:textColor="#52D3C6"
-                android:textSize="14sp"
+                android:textColor="#78D5CB"
+                android:textSize="15sp"
                 android:textStyle="bold" />
         </LinearLayout>
 
@@ -77,87 +77,48 @@
             <LinearLayout
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_marginEnd="52dp"
+                android:layout_marginEnd="64dp"
                 android:layout_weight="1"
                 android:orientation="vertical">
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="RECEIVER MODE"
-                    android:textColor="#52D3C6"
-                    android:textSize="13sp"
-                    android:textStyle="bold" />
 
                 <TextView
                     android:id="@+id/setup_headline"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="10dp"
                     android:ellipsize="end"
                     android:maxLines="3"
                     android:text="@string/setup_headline_ready"
-                    android:textColor="#EAF2F8"
-                    android:textSize="30sp"
+                    android:textColor="#F1F4F2"
+                    android:textSize="44sp"
                     android:textStyle="bold" />
 
                 <TextView
                     android:id="@+id/setup_description"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="12dp"
+                    android:layout_marginTop="18dp"
                     android:ellipsize="end"
-                    android:lineSpacingExtra="3dp"
-                    android:maxLines="3"
+                    android:lineSpacingExtra="5dp"
+                    android:maxLines="5"
                     android:text="@string/setup_desc_ready"
-                    android:textColor="#AFC0CF"
-                    android:textSize="14sp" />
+                    android:textColor="#AEBBB9"
+                    android:textSize="18sp" />
 
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="16dp"
-                    android:orientation="vertical">
-
-                    <TextView
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:maxLines="1"
-                        android:ellipsize="end"
-                        android:text="@string/step1"
-                        android:textColor="#DCE8F1"
-                        android:textSize="13sp" />
-
-                    <TextView
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="12dp"
-                        android:maxLines="1"
-                        android:ellipsize="end"
-                        android:text="@string/step2"
-                        android:textColor="#DCE8F1"
-                        android:textSize="13sp" />
-
-                    <TextView
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="12dp"
-                        android:maxLines="1"
-                        android:ellipsize="end"
-                        android:text="@string/step3"
-                        android:textColor="#DCE8F1"
-                        android:textSize="13sp" />
-                </LinearLayout>
+                <View
+                    android:layout_width="76dp"
+                    android:layout_height="4dp"
+                    android:layout_marginTop="28dp"
+                    android:background="#E9A62F" />
             </LinearLayout>
 
             <ScrollView
-                android:layout_width="520dp"
+                android:layout_width="560dp"
                 android:layout_height="match_parent"
                 android:background="@drawable/bg_setup_panel"
                 android:fillViewport="true"
                 android:focusable="false"
                 android:focusableInTouchMode="false"
-                android:padding="28dp">
+                android:padding="30dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -168,98 +129,129 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="@string/panel_connect_title"
-                        android:textColor="#EAF2F8"
-                        android:textSize="25sp"
-                        android:textStyle="bold" />
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="8dp"
-                        android:text="@string/token_hint"
-                        android:textColor="#96AABC"
-                        android:textSize="15sp" />
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="24dp"
-                        android:text="@string/token_label"
-                        android:textColor="#B9CAD8"
-                        android:textSize="12sp"
-                        android:textStyle="bold" />
-
-                    <EditText
-                        android:id="@+id/token_input"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:minHeight="64dp"
-                        android:layout_marginTop="8dp"
-                        android:background="@drawable/selector_input"
-                        android:digits="0123456789"
-                        android:gravity="center_vertical"
-                        android:hint="000000"
-                        android:imeOptions="actionDone"
-                        android:importantForAutofill="no"
-                        android:inputType="number"
-                        android:maxLength="6"
-                        android:paddingStart="20dp"
-                        android:paddingEnd="20dp"
-                        android:singleLine="true"
-                        android:textColor="#EAF2F8"
-                        android:textColorHint="#93A9BC"
-                        android:textSize="24sp"
+                        android:textColor="#F1F4F2"
+                        android:textSize="28sp"
                         android:textStyle="bold" />
 
                     <TextView
                         android:id="@+id/discovery_label"
-                        android:layout_width="wrap_content"
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="24dp"
-                        android:textColor="#AFC0CF"
-                        android:textSize="14sp" />
+                        android:layout_marginTop="10dp"
+                        android:textColor="#AEBBB9"
+                        android:textSize="16sp" />
 
                     <LinearLayout
                         android:id="@+id/sender_list"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="10dp"
+                        android:layout_marginTop="20dp"
                         android:orientation="vertical" />
 
                     <Button
                         android:id="@+id/btn_retry"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:minHeight="56dp"
                         android:layout_marginTop="12dp"
                         android:background="@drawable/selector_secondary_button"
                         android:focusable="true"
+                        android:minHeight="58dp"
                         android:textAllCaps="false"
                         android:textColor="@color/selector_secondary_text"
-                        android:textSize="15sp" />
+                        android:textSize="16sp" />
+
+                    <LinearLayout
+                        android:id="@+id/pairing_section"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:orientation="vertical"
+                        android:visibility="gone">
+
+                        <View
+                            android:layout_width="match_parent"
+                            android:layout_height="1dp"
+                            android:layout_marginTop="12dp"
+                            android:layout_marginBottom="24dp"
+                            android:background="#3650574F" />
+
+                        <TextView
+                            android:id="@+id/selected_sender_text"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:textColor="#F1F4F2"
+                            android:textSize="22sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="8dp"
+                            android:text="@string/token_hint"
+                            android:textColor="#AEBBB9"
+                            android:textSize="15sp" />
+
+                        <EditText
+                            android:id="@+id/token_input"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="18dp"
+                            android:background="@drawable/selector_input"
+                            android:digits="0123456789"
+                            android:gravity="center"
+                            android:hint="000 000"
+                            android:imeOptions="actionDone"
+                            android:importantForAutofill="no"
+                            android:inputType="number"
+                            android:letterSpacing="0.12"
+                            android:maxLength="6"
+                            android:minHeight="76dp"
+                            android:singleLine="true"
+                            android:textColor="#F1F4F2"
+                            android:textColorHint="#73827F"
+                            android:textSize="30sp"
+                            android:textStyle="bold" />
+
+                        <Button
+                            android:id="@+id/btn_connect_selected"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="12dp"
+                            android:background="@drawable/selector_primary_button"
+                            android:focusable="true"
+                            android:minHeight="62dp"
+                            android:text="@string/btn_connect_selected"
+                            android:textAllCaps="false"
+                            android:textColor="@color/selector_primary_text"
+                            android:textSize="17sp"
+                            android:textStyle="bold" />
+
+                        <Button
+                            android:id="@+id/btn_change_sender"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="8dp"
+                            android:background="@drawable/selector_tertiary_button"
+                            android:focusable="true"
+                            android:minHeight="54dp"
+                            android:text="@string/btn_change_sender"
+                            android:textAllCaps="false"
+                            android:textColor="@color/selector_secondary_text"
+                            android:textSize="15sp" />
+                    </LinearLayout>
 
                     <Button
                         android:id="@+id/btn_manual_toggle"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:minHeight="56dp"
-                        android:layout_marginTop="10dp"
+                        android:layout_marginTop="12dp"
                         android:background="@drawable/selector_tertiary_button"
                         android:focusable="true"
+                        android:minHeight="54dp"
                         android:text="@string/btn_manual_show"
                         android:textAllCaps="false"
                         android:textColor="@color/selector_secondary_text"
                         android:textSize="15sp" />
-
-                    <CheckBox
-                        android:id="@+id/chk_low_latency"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:minHeight="48dp"
-                        android:layout_marginTop="10dp"
-                        android:focusable="true"
-                        android:textColor="#EAF2F8"
-                        android:textSize="14sp" />
 
                     <LinearLayout
                         android:id="@+id/manual_section"
@@ -270,43 +262,90 @@
                         android:visibility="gone">
 
                         <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/receiver_name_label"
+                            android:textColor="#D4DEDC"
+                            android:textSize="14sp"
+                            android:textStyle="bold" />
+
+                        <EditText
+                            android:id="@+id/receiver_name_input"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="8dp"
+                            android:background="@drawable/selector_input"
+                            android:imeOptions="actionDone"
+                            android:inputType="textCapWords"
+                            android:maxLength="32"
+                            android:minHeight="58dp"
+                            android:paddingStart="18dp"
+                            android:paddingEnd="18dp"
+                            android:singleLine="true"
+                            android:textColor="#F1F4F2"
+                            android:textSize="16sp" />
+
+                        <Button
+                            android:id="@+id/btn_save_receiver_name"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="8dp"
+                            android:background="@drawable/selector_secondary_button"
+                            android:focusable="true"
+                            android:minHeight="54dp"
+                            android:text="@string/btn_save_name"
+                            android:textAllCaps="false"
+                            android:textColor="@color/selector_secondary_text"
+                            android:textSize="15sp" />
+
+                        <CheckBox
+                            android:id="@+id/chk_low_latency"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="18dp"
+                            android:focusable="true"
+                            android:minHeight="50dp"
+                            android:textColor="#F1F4F2"
+                            android:textSize="14sp" />
+
+                        <TextView
                             android:id="@+id/manual_label"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:textColor="#B9CAD8"
-                            android:textSize="13sp"
+                            android:layout_marginTop="18dp"
+                            android:textColor="#D4DEDC"
+                            android:textSize="14sp"
                             android:textStyle="bold" />
 
                         <EditText
                             android:id="@+id/manual_input"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:minHeight="60dp"
                             android:layout_marginTop="8dp"
                             android:background="@drawable/selector_input"
                             android:hint="@string/manual_input_hint"
                             android:imeOptions="actionDone"
                             android:importantForAutofill="no"
                             android:inputType="text"
+                            android:minHeight="60dp"
                             android:paddingStart="18dp"
                             android:paddingEnd="18dp"
                             android:singleLine="true"
-                            android:textColor="#EAF2F8"
-                            android:textColorHint="#93A9BC"
+                            android:textColor="#F1F4F2"
+                            android:textColorHint="#73827F"
                             android:textSize="16sp" />
 
                         <Button
                             android:id="@+id/btn_connect_manual"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:minHeight="60dp"
                             android:layout_marginTop="10dp"
-                            android:background="@drawable/selector_primary_button"
+                            android:background="@drawable/selector_secondary_button"
                             android:focusable="true"
+                            android:minHeight="58dp"
                             android:textAllCaps="false"
-                            android:textColor="@color/selector_primary_text"
-                            android:textSize="16sp"
-                            android:textStyle="bold" />
+                            android:textColor="@color/selector_secondary_text"
+                            android:textSize="16sp" />
                     </LinearLayout>
                 </LinearLayout>
             </ScrollView>
@@ -315,11 +354,11 @@
 
     <LinearLayout
         android:id="@+id/session_panel"
-        android:layout_width="500dp"
+        android:layout_width="620dp"
         android:layout_height="wrap_content"
-        android:layout_gravity="top|end"
-        android:layout_marginTop="40dp"
-        android:layout_marginEnd="48dp"
+        android:layout_gravity="bottom|start"
+        android:layout_marginStart="56dp"
+        android:layout_marginBottom="48dp"
         android:background="@drawable/bg_session_panel"
         android:orientation="vertical"
         android:padding="24dp"
@@ -336,31 +375,28 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:textColor="#52D3C6"
-                android:textSize="19sp"
+                android:textColor="#78D5CB"
+                android:textSize="20sp"
                 android:textStyle="bold" />
 
             <TextView
                 android:id="@+id/session_badge"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="LIVE"
-                android:textColor="#46A7FF"
-                android:textSize="12sp"
+                android:textColor="#E9A62F"
+                android:textSize="14sp"
                 android:textStyle="bold" />
 
             <Button
                 android:id="@+id/btn_hide_session"
                 android:layout_width="48dp"
                 android:layout_height="48dp"
-                android:layout_marginStart="12dp"
+                android:layout_marginStart="14dp"
                 android:background="@drawable/selector_tertiary_button"
                 android:contentDescription="Sembunyikan panel sesi"
                 android:focusable="true"
-                android:gravity="center"
                 android:minWidth="0dp"
                 android:minHeight="0dp"
-                android:padding="0dp"
                 android:text="×"
                 android:textAllCaps="false"
                 android:textColor="@color/selector_secondary_text"
@@ -372,57 +408,49 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
-            android:textColor="#DCE8F1"
-            android:textSize="15sp"
+            android:ellipsize="end"
             android:maxLines="1"
-            android:ellipsize="end" />
-
-        <TextView
-            android:id="@+id/tier_text"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:textColor="#8DA3B6"
-            android:textSize="12sp"
-            android:maxLines="1"
-            android:ellipsize="end" />
+            android:textColor="#D4DEDC"
+            android:textSize="16sp" />
 
         <TextView
             android:id="@+id/audio_text"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:textColor="#52D3C6"
-            android:textSize="13sp"
+            android:layout_marginTop="6dp"
+            android:ellipsize="end"
             android:maxLines="1"
-            android:ellipsize="end" />
+            android:textColor="#78D5CB"
+            android:textSize="14sp" />
+
+        <TextView
+            android:id="@+id/tier_text"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:textColor="#879693"
+            android:textSize="12sp" />
 
         <TextView
             android:id="@+id/stats_text"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="10dp"
-            android:textColor="#F2B84B"
-            android:textSize="12sp"
+            android:layout_marginTop="5dp"
+            android:ellipsize="end"
             android:maxLines="1"
-            android:ellipsize="end" />
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="14dp"
-            android:text="@string/panel_hint"
-            android:textColor="#7E94A6"
+            android:textColor="#879693"
             android:textSize="12sp" />
 
         <Button
             android:id="@+id/btn_disconnect"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-                        android:minHeight="56dp"
-            android:layout_marginTop="16dp"
+            android:layout_marginTop="18dp"
             android:background="@drawable/selector_secondary_button"
             android:focusable="true"
+            android:minHeight="56dp"
             android:text="@string/btn_disconnect_label"
             android:textAllCaps="false"
             android:textColor="@color/selector_secondary_text"
