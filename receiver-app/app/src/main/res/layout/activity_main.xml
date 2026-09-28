@@ -96,7 +96,7 @@
                     android:layout_marginTop="10dp"
                     android:ellipsize="end"
                     android:maxLines="3"
-                    android:text="Siap menerima\nlayar laptop"
+                    android:text="@string/setup_headline_ready"
                     android:textColor="#EAF2F8"
                     android:textSize="30sp"
                     android:textStyle="bold" />
@@ -109,7 +109,7 @@
                     android:ellipsize="end"
                     android:lineSpacingExtra="3dp"
                     android:maxLines="3"
-                    android:text="Pastikan TV dan laptop berada di jaringan yang sama. Buka WDT Sender, lalu gunakan kode pairing yang tampil di laptop."
+                    android:text="@string/setup_desc_ready"
                     android:textColor="#AFC0CF"
                     android:textSize="14sp" />
 
@@ -124,7 +124,7 @@
                         android:layout_height="wrap_content"
                         android:maxLines="1"
                         android:ellipsize="end"
-                        android:text="01   Buka WDT Sender di laptop"
+                        android:text="@string/step1"
                         android:textColor="#DCE8F1"
                         android:textSize="13sp" />
 
@@ -134,7 +134,7 @@
                         android:layout_marginTop="12dp"
                         android:maxLines="1"
                         android:ellipsize="end"
-                        android:text="02   Masukkan kode pairing 6 digit"
+                        android:text="@string/step2"
                         android:textColor="#DCE8F1"
                         android:textSize="13sp" />
 
@@ -144,7 +144,7 @@
                         android:layout_marginTop="12dp"
                         android:maxLines="1"
                         android:ellipsize="end"
-                        android:text="03   Pilih laptop yang ditemukan"
+                        android:text="@string/step3"
                         android:textColor="#DCE8F1"
                         android:textSize="13sp" />
                 </LinearLayout>
@@ -167,7 +167,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Sambungkan laptop"
+                        android:text="@string/panel_connect_title"
                         android:textColor="#EAF2F8"
                         android:textSize="25sp"
                         android:textStyle="bold" />
@@ -176,7 +176,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="8dp"
-                        android:text="Masukkan kode yang terlihat di Sender."
+                        android:text="@string/token_hint"
                         android:textColor="#96AABC"
                         android:textSize="15sp" />
 
@@ -184,7 +184,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="24dp"
-                        android:text="KODE PAIRING"
+                        android:text="@string/token_label"
                         android:textColor="#B9CAD8"
                         android:textSize="12sp"
                         android:textStyle="bold" />
@@ -246,7 +246,7 @@
                         android:layout_marginTop="10dp"
                         android:background="@drawable/selector_tertiary_button"
                         android:focusable="true"
-                        android:text="Laptop tidak ditemukan?"
+                        android:text="@string/btn_manual_show"
                         android:textAllCaps="false"
                         android:textColor="@color/selector_secondary_text"
                         android:textSize="15sp" />
@@ -411,7 +411,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="14dp"
-            android:text="Tekan OK untuk menampilkan panel ini lagi."
+            android:text="@string/panel_hint"
             android:textColor="#7E94A6"
             android:textSize="12sp" />
 
@@ -423,7 +423,7 @@
             android:layout_marginTop="16dp"
             android:background="@drawable/selector_secondary_button"
             android:focusable="true"
-            android:text="Putuskan koneksi"
+            android:text="@string/btn_disconnect_label"
             android:textAllCaps="false"
             android:textColor="@color/selector_secondary_text"
             android:textSize="15sp" />

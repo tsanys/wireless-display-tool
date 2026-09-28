@@ -78,6 +78,8 @@ jobs:
           fi
           echo "sdkmanager: $SDKMANAGER"
           yes | "$SDKMANAGER" --licenses > /dev/null 2>&1 || true
+      - name: Cek paritas lokalisasi (ID/EN)
+        run: python3 receiver-app/scripts/check_i18n.py
       - name: Gradle test/lint/assemble
         working-directory: receiver-app
         run: ./gradlew --no-daemon testDebugUnitTest lint assembleDebug

@@ -99,7 +99,7 @@ class MainActivity : Activity() {
     private var videoShown = false
     /** Status audio sesi (dari SessionConfig) untuk panel sesi. */
     private var audioActive = false
-    private var audioRouteLabel = "Laptop"
+    private var audioRouteLabel = ""
 
     private val hideSessionPanel = object : Runnable {
         override fun run() {
@@ -154,6 +154,7 @@ class MainActivity : Activity() {
         btnConnectManual.text = getString(R.string.btn_connect)
         btnRetry.text = getString(R.string.btn_retry)
         chkLowLatency.text = getString(R.string.low_latency_label)
+        audioRouteLabel = getString(R.string.audio_route_laptop)
 
         // Trial WebRTC hanya dapat diterapkan sebelum factory pertama dibuat.
         val prefs = getPreferences(Context.MODE_PRIVATE)
@@ -184,7 +185,9 @@ class MainActivity : Activity() {
         btnManualToggle.setOnClickListener {
             val opening = manualSection.visibility != View.VISIBLE
             manualSection.visibility = if (opening) View.VISIBLE else View.GONE
-            btnManualToggle.text = if (opening) "Sembunyikan alamat manual" else "Laptop tidak ditemukan?"
+            btnManualToggle.text = getString(
+                if (opening) R.string.btn_manual_hide else R.string.btn_manual_show,
+            )
             if (opening) manualInput.requestFocus()
         }
         btnDisconnect.setOnClickListener { confirmDisconnect() }
@@ -327,9 +330,11 @@ class MainActivity : Activity() {
         }
         discoveryLabel.text = getString(R.string.discovery_found)
         for (sender in senders) {
-            val label = sender.instanceName.removePrefix("WDT ").ifBlank { "Laptop" }
+            val label = sender.instanceName.removePrefix("WDT ").ifBlank {
+                getString(R.string.audio_route_laptop)
+            }
             val btn = Button(this).apply {
-                text = "$label\nTersedia di jaringan ini  →"
+                text = getString(R.string.sender_available_fmt, label)
                 isAllCaps = false
                 maxLines = 2
                 ellipsize = android.text.TextUtils.TruncateAt.END
@@ -363,7 +368,7 @@ class MainActivity : Activity() {
         ManualPairing.parseTokenOnly(raw)?.let { return it }
         Toast.makeText(
             this,
-            "Masukkan kode pairing 6 digit untuk $senderName",
+            getString(R.string.pairing_token_prompt_fmt, senderName),
             Toast.LENGTH_LONG,
         ).show()
         tokenInput.requestFocus()
@@ -373,7 +378,7 @@ class MainActivity : Activity() {
     private fun connectManual() {
         when (val result = ManualPairing.parse(manualInput.text?.toString().orEmpty())) {
             is PairingResult.Failure -> {
-                discoveryLabel.text = "Alamat belum valid. Gunakan format IP:port:kode."
+                discoveryLabel.text = getString(R.string.manual_invalid)
                 showTransientError(result.reason)
                 manualInput.requestFocus()
             }
@@ -395,7 +400,7 @@ class MainActivity : Activity() {
         connectedSenderLabel = label
 
         senderText.text = getString(R.string.sender_fmt, label)
-        setStatus(UiState.CONNECTING, "Menghubungi $label…")
+        setStatus(UiState.CONNECTING, getString(R.string.status_contacting_fmt, label))
         panelSetup.visibility = View.VISIBLE
         sessionPanel.visibility = View.GONE
         discovery?.stop()
@@ -405,9 +410,9 @@ class MainActivity : Activity() {
 
         // Signaling client.
         signaling = SignalingClient(
-            onOpen = { setStatus(UiState.CONNECTING, "Terhubung ke signaling server…") },
+            onOpen = { setStatus(UiState.CONNECTING, getString(R.string.status_signaling_open)) },
             onHelloOk = { server ->
-                setStatus(UiState.CONNECTING, "Pairing OK ($server). Menunggu offer…")
+                setStatus(UiState.CONNECTING, getString(R.string.status_pairing_ok_fmt, server))
             },
             onOffer = { sdp -> handleOffer(sdp) },
             onIce = { candidate ->
@@ -471,10 +476,10 @@ class MainActivity : Activity() {
         )
         audioActive = audio.enabled
         audioRouteLabel = when (audio.route) {
-            "tv" -> "TV"
-            "both" -> "Keduanya"
-            "muted" -> "Tanpa suara"
-            else -> "Laptop"
+            "tv" -> getString(R.string.audio_route_tv)
+            "both" -> getString(R.string.audio_route_both)
+            "muted" -> getString(R.string.audio_route_muted)
+            else -> getString(R.string.audio_route_laptop)
         }
         peer?.setAudioEnabled(audio.enabled)
         renderAudioStatus(0.0)
@@ -483,11 +488,11 @@ class MainActivity : Activity() {
     /** Perbarui baris audio di panel sesi (lokasi + bitrate bila aktif). */
     private fun renderAudioStatus(audioKbps: Double) {
         if (!audioActive) {
-            audioText.text = "Suara: $audioRouteLabel · tidak dikirim ke TV"
+            audioText.text = getString(R.string.audio_status_off_fmt, audioRouteLabel)
             return
         }
         val rate = if (audioKbps > 0) " · %.0f kbps".format(audioKbps) else ""
-        audioText.text = "Suara: $audioRouteLabel$rate"
+        audioText.text = getString(R.string.audio_status_fmt, audioRouteLabel, rate)
     }
 
     private fun handleOffer(sdp: String) {
@@ -501,12 +506,12 @@ class MainActivity : Activity() {
         val p = buildPeer()
         peer = p
         offerHandled = true
-        setStatus(UiState.CONNECTING, "Offer diterima, membuat answer…")
+        setStatus(UiState.CONNECTING, getString(R.string.status_offer_received))
         p.setRemoteOffer(
             sdp = sdp,
             onAnswerReady = { answer ->
                 signaling?.sendAnswer(answer)
-                setStatus(UiState.CONNECTING, "Answer terkirim. Menunggu ICE/DTLS…")
+                setStatus(UiState.CONNECTING, getString(R.string.status_answer_sent))
             },
             onFailure = { error -> onSessionError(error) },
         )
@@ -516,14 +521,14 @@ class MainActivity : Activity() {
         Log.i(TAG, "peerState=$peerState")
         when (peerState) {
             PeerState.CONNECTED -> {
-                setStatus(UiState.CONNECTED, "Terhubung. Menunggu video…")
+                setStatus(UiState.CONNECTED, getString(R.string.status_connected_waiting_video))
             }
-            PeerState.CONNECTING -> setStatus(UiState.CONNECTING, "Menghubungkan peer…")
+            PeerState.CONNECTING -> setStatus(UiState.CONNECTING, getString(R.string.status_connecting_peer))
             PeerState.DISCONNECTED -> setStatus(
                 UiState.CONNECTING,
-                "Peer terputus, menunggu pemulihan…",
+                getString(R.string.status_peer_recovering),
             )
-            PeerState.FAILED -> onSessionError("Koneksi WebRTC gagal (ICE/DTLS)")
+            PeerState.FAILED -> onSessionError(getString(R.string.err_webrtc_failed))
             PeerState.CLOSED -> Unit
             PeerState.IDLE -> Unit
         }
@@ -532,7 +537,7 @@ class MainActivity : Activity() {
     private fun onVideoFrame() {
         if (videoShown) return
         videoShown = true
-        setStatus(UiState.CONNECTED, "Video tampil ✓")
+        setStatus(UiState.CONNECTED, getString(R.string.status_video_shown))
         videoRenderer.visibility = View.VISIBLE
         panelSetup.visibility = View.GONE
         sessionPanel.clearFocus()
@@ -542,11 +547,11 @@ class MainActivity : Activity() {
     private fun onSignalingError(code: String, message: String) {
         Log.i(TAG, "signalingError code=$code message=$message")
         val human = when (code) {
-            "badToken" -> "Kode pairing salah. Periksa kembali 6 digit yang tampil di Sender."
-            "senderBusy" -> "Laptop sedang terhubung ke TV lain. Putuskan sesi itu, lalu coba lagi."
-            "protoMismatch" -> "Versi Sender dan Receiver tidak cocok. Perbarui kedua aplikasi."
-            "networkError" -> "Laptop tidak dapat dijangkau. Periksa jaringan, lalu coba lagi."
-            else -> "Koneksi terhenti. Coba sambungkan kembali."
+            "badToken" -> getString(R.string.err_bad_token)
+            "senderBusy" -> getString(R.string.err_sender_busy)
+            "protoMismatch" -> getString(R.string.err_proto_mismatch)
+            "networkError" -> getString(R.string.err_network)
+            else -> getString(R.string.err_generic)
         }
         onSessionError(human)
     }
@@ -568,12 +573,12 @@ class MainActivity : Activity() {
             audioActive = false
             audioText.text = ""
             statsText.text = ""
-            setStatus(UiState.CONNECTED, "Berbagi dijeda di laptop. Menunggu Mulai…")
+            setStatus(UiState.CONNECTED, getString(R.string.status_mirror_stopped), paused = true)
             sessionPanel.clearFocus()
             showPlaybackPanel(autoHide = true)
             return
         }
-        Toast.makeText(this, "Sesi berakhir: $reason", Toast.LENGTH_SHORT).show()
+        Toast.makeText(this, getString(R.string.session_ended_fmt, reason), Toast.LENGTH_SHORT).show()
         backToScanning()
     }
 
@@ -584,7 +589,7 @@ class MainActivity : Activity() {
         teardownSession(closeSignaling = true)
         panelSetup.visibility = View.VISIBLE
         sessionPanel.visibility = View.GONE
-        discoveryLabel.text = "Periksa kode pairing dan jaringan, lalu coba lagi."
+        discoveryLabel.text = getString(R.string.discovery_retry_hint)
         btnRetry.requestFocus()
     }
 
@@ -644,13 +649,13 @@ class MainActivity : Activity() {
     private fun confirmDisconnect() {
         uiHandler.removeCallbacks(hideSessionPanel)
         val dialog = AlertDialog.Builder(this)
-            .setTitle("Putuskan koneksi?")
-            .setMessage("Tampilan laptop akan berhenti di TV ini.")
-            .setNegativeButton("Tetap berbagi") { dialog, _ ->
+            .setTitle(R.string.dialog_disconnect_title)
+            .setMessage(R.string.dialog_disconnect_message)
+            .setNegativeButton(R.string.dialog_keep_sharing) { dialog, _ ->
                 dialog.dismiss()
                 if (videoShown) showPlaybackPanel(autoHide = true)
             }
-            .setPositiveButton("Putuskan") { _, _ -> backToScanning() }
+            .setPositiveButton(R.string.dialog_disconnect_confirm) { _, _ -> backToScanning() }
             .create()
         dialog.setOnShowListener {
             dialog.getButton(AlertDialog.BUTTON_NEGATIVE).requestFocus()
@@ -664,37 +669,35 @@ class MainActivity : Activity() {
 
     private fun deviceLabel(): String {
         val model = Build.MODEL ?: "android-tv"
-        return "TV $model"
+        return getString(R.string.device_label_fmt, model)
     }
 
     private fun dp(value: Int): Int = (value * resources.displayMetrics.density).toInt()
 
-    private fun setStatus(newState: UiState, message: String) {
+    private fun setStatus(newState: UiState, message: String, paused: Boolean = false) {
         // Pertahanan: WebRTC/OkHttp bisa memanggil callback dari thread lain.
         // Menyentuh View dari non-main thread memicu
         // CalledFromWrongThreadException (dan pernah membuat proses abort
         // lewat batas JNI). Selalu pindah ke main thread dulu.
         if (android.os.Looper.myLooper() != android.os.Looper.getMainLooper()) {
-            uiHandler.post { setStatus(newState, message) }
+            uiHandler.post { setStatus(newState, message, paused) }
             return
         }
         Log.i(TAG, "state=$newState message=$message")
         state = newState
         val friendly = when (newState) {
-            UiState.SCANNING -> "Siap menerima layar"
-            UiState.CONNECTING -> "Sedang menyambungkan…"
-            UiState.CONNECTED -> if (message.contains("dijeda", ignoreCase = true)) {
-                "Berbagi dijeda"
-            } else if (videoShown) {
-                "Layar sedang dibagikan"
-            } else {
-                "Terhubung · menunggu layar"
+            UiState.SCANNING -> getString(R.string.status_ready)
+            UiState.CONNECTING -> getString(R.string.status_connecting)
+            UiState.CONNECTED -> when {
+                paused -> getString(R.string.status_paused)
+                videoShown -> getString(R.string.status_sharing)
+                else -> getString(R.string.status_connected_waiting_screen)
             }
-            UiState.ERROR -> "Koneksi perlu diperiksa"
+            UiState.ERROR -> getString(R.string.status_needs_check)
         }
         statusText.text = getString(R.string.status_fmt, friendly)
         setupStatusText.text = friendly
-        sessionBadge.text = if (message.contains("dijeda", ignoreCase = true)) "PAUSED" else "LIVE"
+        sessionBadge.text = if (paused) "PAUSED" else "LIVE"
         val color = when (newState) {
             UiState.CONNECTED -> 0xFF52D3C6.toInt()
             UiState.ERROR -> 0xFFFF7E79.toInt()
@@ -705,19 +708,19 @@ class MainActivity : Activity() {
         setupStatusText.setTextColor(color)
         when (newState) {
             UiState.SCANNING -> {
-                setupHeadline.text = "Siap menerima\nlayar laptop"
-                setupDescription.text = "Pastikan TV dan laptop berada di jaringan yang sama. Buka WDT Sender, lalu gunakan kode pairing yang tampil di laptop."
+                setupHeadline.text = getString(R.string.setup_headline_ready)
+                setupDescription.text = getString(R.string.setup_desc_ready)
             }
             UiState.CONNECTING -> {
-                setupHeadline.text = "Sedang\nmenyambungkan"
-                setupDescription.text = "Tetap di layar ini. WDT sedang menyiapkan koneksi aman ke laptop."
+                setupHeadline.text = getString(R.string.setup_headline_connecting)
+                setupDescription.text = getString(R.string.setup_desc_connecting)
             }
             UiState.CONNECTED -> {
-                setupHeadline.text = "Laptop\nsudah terhubung"
-                setupDescription.text = "Koneksi siap. Menunggu laptop mulai membagikan layar."
+                setupHeadline.text = getString(R.string.setup_headline_connected)
+                setupDescription.text = getString(R.string.setup_desc_connected)
             }
             UiState.ERROR -> {
-                setupHeadline.text = "Belum berhasil\nterhubung"
+                setupHeadline.text = getString(R.string.setup_headline_error)
                 setupDescription.text = message
             }
         }
