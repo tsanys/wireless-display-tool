@@ -16,6 +16,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Security defaults: secret scanning with push protection, Dependabot
   alerts/security updates, and private vulnerability reporting.
 
+### Changed
+
+- Upgraded the WebRTC stack (`webrtc`/`rtc` 0.20 → 0.21, combined migration
+  with `0.21` API adaptations); runtime pairing re-verified (macOS sender →
+  Android TV receiver).
+
 ## [0.1.0] - 2026-09-28
 
 First stable release of Wireless Display Tool: mirror a macOS/Windows screen to
