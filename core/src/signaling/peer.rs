@@ -5,7 +5,7 @@
 //! jalur produksi (T4) dan test client T3.
 
 use std::sync::{Arc, Mutex as StdMutex};
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use rtc::media_stream::MediaStreamTrack;
 use rtc::peer_connection::configuration::media_engine::{
@@ -258,20 +258,23 @@ async fn add_h264_placeholder(
     pc: &Arc<dyn PeerConnection>,
     codec: RTCRtpCodecParameters,
 ) -> PeerResult<Arc<TrackLocalStaticSample>> {
-    let track = Arc::new(TrackLocalStaticSample::new(MediaStreamTrack::new(
-        "wdt-stream".to_owned(),
-        "wdt-video".to_owned(),
-        "wdt-video".to_owned(),
-        RtpCodecKind::Video,
-        vec![RTCRtpEncodingParameters {
-            rtp_coding_parameters: RTCRtpCodingParameters {
-                ssrc: Some(fastrand::u32(..)),
+    let track = Arc::new(TrackLocalStaticSample::new(
+        Instant::now(),
+        MediaStreamTrack::new(
+            "wdt-stream".to_owned(),
+            "wdt-video".to_owned(),
+            "wdt-video".to_owned(),
+            RtpCodecKind::Video,
+            vec![RTCRtpEncodingParameters {
+                rtp_coding_parameters: RTCRtpCodingParameters {
+                    ssrc: Some(fastrand::u32(..)),
+                    ..Default::default()
+                },
+                codec: codec.rtp_codec.clone(),
                 ..Default::default()
-            },
-            codec: codec.rtp_codec.clone(),
-            ..Default::default()
-        }],
-    ))?);
+            }],
+        ),
+    )?);
     pc.add_track(track.clone() as Arc<dyn TrackLocal>).await?;
     Ok(track)
 }
@@ -281,20 +284,23 @@ async fn add_opus_track(
     pc: &Arc<dyn PeerConnection>,
     codec: RTCRtpCodecParameters,
 ) -> PeerResult<Arc<TrackLocalStaticSample>> {
-    let track = Arc::new(TrackLocalStaticSample::new(MediaStreamTrack::new(
-        "wdt-stream".to_owned(),
-        "wdt-audio".to_owned(),
-        "wdt-audio".to_owned(),
-        RtpCodecKind::Audio,
-        vec![RTCRtpEncodingParameters {
-            rtp_coding_parameters: RTCRtpCodingParameters {
-                ssrc: Some(fastrand::u32(..)),
+    let track = Arc::new(TrackLocalStaticSample::new(
+        Instant::now(),
+        MediaStreamTrack::new(
+            "wdt-stream".to_owned(),
+            "wdt-audio".to_owned(),
+            "wdt-audio".to_owned(),
+            RtpCodecKind::Audio,
+            vec![RTCRtpEncodingParameters {
+                rtp_coding_parameters: RTCRtpCodingParameters {
+                    ssrc: Some(fastrand::u32(..)),
+                    ..Default::default()
+                },
+                codec: codec.rtp_codec.clone(),
                 ..Default::default()
-            },
-            codec: codec.rtp_codec.clone(),
-            ..Default::default()
-        }],
-    ))?);
+            }],
+        ),
+    )?);
     pc.add_track(track.clone() as Arc<dyn TrackLocal>).await?;
     Ok(track)
 }

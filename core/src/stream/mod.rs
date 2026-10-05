@@ -146,10 +146,15 @@ impl TrackSink {
 #[async_trait::async_trait]
 impl SampleSink for TrackSink {
     async fn write(&self, data: Vec<u8>, duration: Duration) -> Result<(), StreamError> {
+        // webrtc 0.21: `Sample` tidak lagi `Default` — `timestamp` adalah
+        // observasi wall-clock yang wajib diisi pemanggil.
         let sample = Sample {
             data: Bytes::from(data),
+            timestamp: Instant::now(),
             duration,
-            ..Default::default()
+            packet_timestamp: 0,
+            prev_dropped_packets: 0,
+            prev_padding_packets: 0,
         };
         self.track
             .sample_writer(self.ssrc, self.payload_type)
