@@ -10,18 +10,36 @@ updates:
     schedule:
       interval: "weekly"
     open-pull-requests-limit: 5
+    groups:
+      # Tauri backend crates move in lockstep; review/merge as one PR.
+      # Core crates (webrtc, rtc, …) stay individual: 0.x minor bumps can
+      # break the API, so each deserves its own CI signal.
+      tauri-ecosystem:
+        patterns:
+          - "tauri"
+          - "tauri-*"
   # Sender app (Tauri frontend).
   - package-ecosystem: "npm"
     directory: "/sender-app"
     schedule:
       interval: "weekly"
     open-pull-requests-limit: 5
+    groups:
+      # Tauri frontend packages move in lockstep; review/merge as one PR.
+      tauri-ecosystem:
+        patterns:
+          - "@tauri-apps/*"
   # Receiver app (Android TV).
   - package-ecosystem: "gradle"
     directory: "/receiver-app"
     schedule:
       interval: "weekly"
     open-pull-requests-limit: 5
+    ignore:
+      # Intentional pin: okhttp 5.4.0+ requires compileSdk 36/37, but the
+      # receiver targets compileSdk 34 (see receiver-app/app/build.gradle.kts).
+      # Revisit when compileSdk is raised.
+      - dependency-name: "com.squareup.okhttp3:okhttp"
   # Pinned third-party Actions in .github/workflows (see the `# v4` / `# stable`
   # comments next to each commit SHA).
   - package-ecosystem: "github-actions"
@@ -29,3 +47,10 @@ updates:
     schedule:
       interval: "weekly"
     open-pull-requests-limit: 5
+    groups:
+      # Action pins move together; one PR per week instead of one per action.
+      actions-all:
+        patterns:
+          - "actions/*"
+          - "Swatinem/*"
+          - "dtolnay/*"
