@@ -46,7 +46,7 @@ kotlin {
 dependencies {
     // Prebuilt libwebrtc maintained (org.webrtc:google-webrtc mati sejak 2018).
     // Versi 150.7871.01 = latest di Maven Central per 2026-09-26 (masih terbaru T5).
-    implementation("io.github.webrtc-sdk:android:150.7871.01")
+    implementation("io.github.webrtc-sdk:android:150.7871.04")
 
     // WebSocket signaling client.
     // Pin 5.3.2: versi 5.x terbaru yang masih kompatibel compileSdk 34
