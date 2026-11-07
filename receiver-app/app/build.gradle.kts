@@ -53,7 +53,7 @@ dependencies {
     // (okhttp-android 5.4.0+ menuntut compileSdk 36/37).
     implementation("com.squareup.okhttp3:okhttp:5.3.2")
     // JSON parsing kontrak signaling (tanpa annotation processor/plugin).
-    implementation("com.google.code.gson:gson:2.14.0")
+    implementation("com.google.code.gson:gson:2.15.0")
     // Coroutines untuk NSD/WS/WebRTC callback off-main-thread.
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.11.0")
 
