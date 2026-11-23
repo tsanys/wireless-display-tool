@@ -9,7 +9,7 @@ axum = { version = "0.8.9", features = ["ws"] }
 bytes = "1.12.1"
 fastrand = "2.5.0"
 futures-util = "0.3.34"
-mdns-sd = "0.21.4"
+mdns-sd = "0.22.0"
 # Encoder Opus. `opusic-sys` meng-compile libopus (C) via cmake saat build
 # lalu static-link — TIDAK ada DLL native saat runtime, aplikasi tetap
 # portabel; cmake hanyalah kebutuhan build-time (sama seperti rustc).
