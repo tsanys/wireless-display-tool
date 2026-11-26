@@ -27,12 +27,17 @@ Workflow berjalan untuk tag `v*`, membangun ketiga artefak, lalu membuat
 GitHub Release bertajuk `Wireless Display Tool v0.1.0` dengan catatan rilis
 otomatis (`--generate-notes`).
 
-### Opsi B — manual (uji coba sebelum tag)
+### Opsi B — manual (publish / unggah ulang)
 
 Jalankan `Release` via **Actions → Release → Run workflow** dan isi `tag`
-(mis. `v0.1.0-rc1`). Gunakan ini untuk memverifikasi ketiga job hijau tanpa
-membuat tag permanen. Jika Release dengan tag tersebut sudah ada, artefak akan
-diunggah ulang (`--clobber`).
+(mis. `v0.1.1`). Ini **bukan dry run**: setelah build selesai, job publish
+akan membuat atau memperbarui GitHub Release. Jika tag belum ada,
+`gh release create` membuat tag dari branch default. Jika Release dengan tag
+tersebut sudah ada, artefak akan diunggah ulang (`--clobber`). Jangan gunakan
+tag versi baru untuk sekadar menguji build.
+
+Untuk menguji build tanpa publish, workflow perlu memiliki input `dry_run` dan
+menonaktifkan job publish saat input tersebut aktif.
 
 ## Konsekuensi artefak unsigned
 
@@ -65,11 +70,13 @@ Setelah signing aktif, perbarui tabel di atas dan hapus catatan unsigned.
 
 ## Versi
 
-Versi saat ini ada di tiga tempat — samakan sebelum tag:
+Samakan versi aplikasi sebelum tag:
 
-- `sender-app/package.json` → `version`
+- `sender-app/package.json` dan `sender-app/package-lock.json` → `version`
 - `sender-app/src-tauri/tauri.conf.json` → `version`
-- `receiver-app/app/build.gradle.kts` → `versionName` (dan `versionCode` += 1)
+- `sender-app/src-tauri/Cargo.toml` dan `core/Cargo.toml` → package `version`
+  (dipakai metadata diagnostics, mDNS, dan signaling)
+- `receiver-app/app/build.gradle.kts` → `versionName` dan naikkan `versionCode`
 
 ## Verifikasi manual artefak
 
