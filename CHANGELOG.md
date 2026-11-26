@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-11-26
+
+Maintenance release for the sender and receiver applications.
+
 ### Added
 
 - Repository hardening for open source: `main` protected by a ruleset
@@ -21,6 +25,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Upgraded the WebRTC stack (`webrtc`/`rtc` 0.20 → 0.21, combined migration
   with `0.21` API adaptations); runtime pairing re-verified (macOS sender →
   Android TV receiver).
+- Updated mDNS discovery dependencies, including fixes for Android clients
+  whose known-answer TTL could suppress service announcements.
+- Refreshed sender, receiver, and CI/build dependencies.
 
 ## [0.1.0] - 2026-09-28
 
@@ -80,6 +87,7 @@ Android TV over the LAN via WebRTC.
 - Extended display remains experimental (macOS virtual display).
 - TalkBack and glass-to-glass lip-sync are not yet verified.
 
-[Unreleased]: https://github.com/tsanys/wireless-display-tool/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/tsanys/wireless-display-tool/compare/v0.1.1...HEAD
+[0.1.1]: https://github.com/tsanys/wireless-display-tool/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/tsanys/wireless-display-tool/releases/tag/v0.1.0
 [0.1.0-rc1]: https://github.com/tsanys/wireless-display-tool/releases/tag/v0.1.0-rc1
